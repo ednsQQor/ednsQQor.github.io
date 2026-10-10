@@ -13,7 +13,7 @@ layout: default
       {% if page.status != "active" and page.date %}<time datetime="{{ page.date | date_to_xmlschema }}">{{ page.date | date: "%d %B %Y" }}</time>{% endif %}
     </div>
 
-    {% if page.status != "active" and page.tags %}
+    {% if page.tags %}
     <div class="tag-list">
       {% for tag in page.tags %}<span class="tag">{{ tag }}</span>{% endfor %}
     </div>
@@ -21,19 +21,27 @@ layout: default
   </header>
 
   {% if page.status == "active" %}
-  <div class="locked-notice">
-    <p class="locked-badge">&#128274; Locked</p>
-    <p>
-      Esta máquina todavía no se ha retirado{% if page.platform %} en {{ page.platform }}{% endif %}.
-      El writeup se publicará en cuanto se retire{% if page.unlock_date %}, previsto para
-      <strong>{{ page.unlock_date | date: "%d %B %Y" }}</strong>{% endif %}.
-    </p>
-    {% if page.unlock_date %}
-    <p class="locked-countdown" data-unlock="{{ page.unlock_date | date_to_xmlschema }}">
-      <span class="countdown-value">—</span>
-    </p>
-    {% endif %}
-  </div>
+  <details class="locked-reveal">
+    <summary class="locked-notice">
+      <span class="locked-badge">&#128274; Máquina activa{% if page.platform %} en {{ page.platform }}{% endif %}</span>
+      <span class="locked-text">
+        Todavía no se ha retirado, así que no compartas este writeup hasta que lo haga.
+        {% if page.unlock_date %}Retiro previsto para <strong>{{ page.unlock_date | date: "%d %B %Y" }}</strong>. {% endif %}
+        <span class="locked-cta">Pulsa para abrir el writeup &rarr;</span>
+      </span>
+      {% if page.unlock_date %}
+      <span class="locked-countdown" data-unlock="{{ page.unlock_date | date_to_xmlschema }}">
+        <span class="countdown-value">—</span>
+      </span>
+      {% endif %}
+    </summary>
+    <div class="writeup-layout">
+      <nav class="writeup-toc" id="toc" aria-label="Table of contents"></nav>
+      <div class="writeup-content" id="writeup-content">
+        {{ content }}
+      </div>
+    </div>
+  </details>
   {% else %}
   <div class="writeup-layout">
     <nav class="writeup-toc" id="toc" aria-label="Table of contents"></nav>
