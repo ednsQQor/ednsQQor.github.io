@@ -1,0 +1,75 @@
+# ------------------------------------------------------------------
+# Site configuration
+# ------------------------------------------------------------------
+title: "ednsQQor"
+tagline: "Cybersecurity writeups"
+description: >-
+  Writeups de ciberseguridad: máquinas sueltas (HTB y similares) y
+  engagements / laboratorios multi-máquina con pivoting entre hosts.
+url: "https://ednsqqor.github.io"
+baseurl: ""
+author: ednsQQor
+github_username: ednsQQor
+lang: es
+
+# ------------------------------------------------------------------
+# Build
+# ------------------------------------------------------------------
+markdown: kramdown
+highlighter: rouge
+
+kramdown:
+  input: GFM
+  syntax_highlighter: rouge
+  auto_ids: true
+  hard_wrap: false
+
+# Plugins supported natively by GitHub Pages (github-pages gem).
+# No custom Actions/workflows needed: GitHub builds this on every push.
+plugins:
+  - jekyll-feed
+  - jekyll-sitemap
+  - jekyll-seo-tag
+
+# ------------------------------------------------------------------
+# Collections
+#   - machines:    writeups de una sola máquina (HTB, etc.)
+#   - engagements: labs/engagements multi-máquina con pivoting
+# ------------------------------------------------------------------
+collections:
+  machines:
+    output: true
+    permalink: /machines/:path/
+  engagements:
+    output: true
+    permalink: /engagements/:path/
+
+defaults:
+  - scope:
+      path: ""
+      type: "machines"
+    values:
+      layout: "machine"
+  - scope:
+      path: ""
+      type: "engagements"
+    values:
+      layout: "engagement"
+  - scope:
+      path: ""
+    values:
+      layout: "default"
+
+sass:
+  style: compressed
+
+# Archivos/carpetas que NO deben copiarse a _site
+exclude:
+  - Gemfile
+  - Gemfile.lock
+  - vendor/
+  - node_modules/
+  - scripts/
+  - README.md
+  - LICENSE
+  - "*.gemspec"

@@ -1,0 +1,33 @@
+{% comment %}
+  Renders one engagement card. Expects `engagement` to be set by the caller.
+{% endcomment %}
+<a class="card card-engagement"
+   href="{{ engagement.url | relative_url }}"
+   data-type="engagement"
+   data-name="{{ engagement.title | downcase }}"
+   data-difficulty=""
+   data-os=""
+   data-tags="engagement">
+  <div class="card-top">
+    <h3 class="card-title">{{ engagement.title }}</h3>
+    <span class="badge badge-type">Engagement</span>
+  </div>
+
+  <p class="card-summary">{{ engagement.summary }}</p>
+
+  {% if engagement.hosts %}
+  <div class="card-hosts">
+    {% for host in engagement.hosts limit: 5 %}
+    <span class="host-chip">{{ host.name }}</span>
+    {% endfor %}
+    {% if engagement.hosts.size > 5 %}<span class="host-chip host-chip-more">+{{ engagement.hosts.size | minus: 5 }}</span>{% endif %}
+  </div>
+  {% endif %}
+
+  <div class="card-meta">
+    {% if engagement.hosts %}<span class="meta-platform">{{ engagement.hosts.size }} hosts</span>{% endif %}
+    {% if engagement.date %}
+    <time class="meta-date" datetime="{{ engagement.date | date_to_xmlschema }}">{{ engagement.date | date: "%d %b %Y" }}</time>
+    {% endif %}
+  </div>
+</a>

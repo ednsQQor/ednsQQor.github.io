@@ -1,0 +1,29 @@
+{% comment %}
+  Renders one machine card. Expects `machine` to be set by the caller.
+{% endcomment %}
+<a class="card card-machine"
+   href="{{ machine.url | relative_url }}"
+   data-type="machine"
+   data-name="{{ machine.title | downcase }}"
+   data-difficulty="{{ machine.difficulty | default: '' | downcase }}"
+   data-os="{{ machine.os | default: '' | downcase }}"
+   data-tags="{{ machine.tags | join: ' ' | downcase }}">
+  <div class="card-top">
+    <h3 class="card-title">{{ machine.title }}</h3>
+    {% if machine.os %}
+    <span class="badge badge-os badge-os-{{ machine.os | downcase }}">{{ machine.os }}</span>
+    {% endif %}
+  </div>
+
+  <p class="card-summary">{{ machine.summary }}</p>
+
+  <div class="card-meta">
+    {% if machine.difficulty %}
+    <span class="badge badge-diff badge-diff-{{ machine.difficulty | downcase }}">{{ machine.difficulty }}</span>
+    {% endif %}
+    {% if machine.platform %}<span class="meta-platform">{{ machine.platform }}</span>{% endif %}
+    {% if machine.date %}
+    <time class="meta-date" datetime="{{ machine.date | date_to_xmlschema }}">{{ machine.date | date: "%d %b %Y" }}</time>
+    {% endif %}
+  </div>
+</a>

@@ -1,0 +1,19 @@
+# Jekyll
+_site/
+.jekyll-cache/
+.jekyll-metadata
+.sass-cache/
+
+# Bundler / Ruby
+vendor/
+.bundle/
+Gemfile.lock
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Obsidian vault cruft (si se abre esta carpeta como vault)
+.obsidian/

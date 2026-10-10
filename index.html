@@ -1,0 +1,67 @@
+---
+layout: default
+title: Home
+---
+<section class="hero">
+  <h1>Writeups &amp; engagements</h1>
+  <p>
+    Notas de hacking: cajas sueltas (HTB y similares) y engagements multi-máquina
+    con pivoting entre hosts, estilo simulacro de certificación.
+  </p>
+</section>
+
+<section class="toolbar">
+  <input
+    type="search"
+    id="search-input"
+    class="search-input"
+    placeholder="Buscar por nombre, tag..."
+    aria-label="Buscar writeups">
+
+  <select id="difficulty-filter" class="difficulty-filter" aria-label="Filtrar por dificultad">
+    <option value="">Cualquier dificultad</option>
+    <option value="easy">Easy</option>
+    <option value="medium">Medium</option>
+    <option value="hard">Hard</option>
+  </select>
+
+  <div class="view-tabs" role="tablist" aria-label="Tipo de contenido">
+    <button type="button" class="view-tab is-active" data-view="all">All</button>
+    <button type="button" class="view-tab" data-view="machine">Machines</button>
+    <button type="button" class="view-tab" data-view="engagement">Engagements</button>
+  </div>
+</section>
+
+<section id="machines" class="content-section">
+  <h2 class="section-title">Machines</h2>
+  {% assign machines = site.machines | sort: 'date' | reverse %}
+  {% if machines.size > 0 %}
+  <div class="card-grid" id="machines-grid">
+    {% for machine in machines %}
+      {% include card-machine.html machine=machine %}
+    {% endfor %}
+  </div>
+  {% else %}
+  <p class="empty-state">
+    Todavía no hay máquinas publicadas. Añade un archivo en <code>_machines/</code> para que aparezca aquí.
+  </p>
+  {% endif %}
+</section>
+
+<section id="engagements" class="content-section">
+  <h2 class="section-title">Engagements</h2>
+  {% assign engagements = site.engagements | sort: 'date' | reverse %}
+  {% if engagements.size > 0 %}
+  <div class="card-grid" id="engagements-grid">
+    {% for engagement in engagements %}
+      {% include card-engagement.html engagement=engagement %}
+    {% endfor %}
+  </div>
+  {% else %}
+  <p class="empty-state">
+    Todavía no hay engagements publicados. Añade un archivo en <code>_engagements/</code> para que aparezca aquí.
+  </p>
+  {% endif %}
+</section>
+
+<p class="no-results" id="no-results" hidden>Sin resultados para ese filtro.</p>

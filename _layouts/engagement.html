@@ -1,0 +1,45 @@
+---
+layout: default
+---
+<article class="writeup">
+  <header class="writeup-header">
+    <p class="writeup-kicker"><a href="{{ '/' | relative_url }}#engagements">&larr; Engagements</a></p>
+    <h1>{{ page.title }}</h1>
+
+    <div class="writeup-meta">
+      <span class="badge badge-type">Engagement</span>
+      {% if page.date %}<time datetime="{{ page.date | date_to_xmlschema }}">{{ page.date | date: "%d %B %Y" }}</time>{% endif %}
+    </div>
+
+    {% if page.tags %}
+    <div class="tag-list">
+      {% for tag in page.tags %}<span class="tag">{{ tag }}</span>{% endfor %}
+    </div>
+    {% endif %}
+  </header>
+
+  {% if page.hosts %}
+  <section class="hosts-overview">
+    <h2>Hosts</h2>
+    <div class="hosts-grid">
+      {% for host in page.hosts %}
+      <div class="host-card">
+        <div class="host-card-top">
+          <span class="host-name">{{ host.name }}</span>
+          {% if host.os %}<span class="badge badge-os badge-os-{{ host.os | downcase }}">{{ host.os }}</span>{% endif %}
+        </div>
+        {% if host.ip %}<code class="host-ip">{{ host.ip }}</code>{% endif %}
+        {% if host.role %}<p class="host-role">{{ host.role }}</p>{% endif %}
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+
+  <div class="writeup-layout">
+    <nav class="writeup-toc" id="toc" aria-label="Table of contents"></nav>
+    <div class="writeup-content" id="writeup-content">
+      {{ content }}
+    </div>
+  </div>
+</article>
