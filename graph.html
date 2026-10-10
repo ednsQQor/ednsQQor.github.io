@@ -1,0 +1,67 @@
+---
+layout: default
+title: Graph
+permalink: /graph/
+---
+<section class="graph-page">
+  <div class="graph-head">
+    <h1>Graph</h1>
+    <p>
+      Vista de grafo al estilo Obsidian: cada máquina/engagement se conecta con sus
+      tags compartidos. Arrastra los nodos para reordenar, pasa el cursor para
+      resaltar conexiones, haz clic en un writeup para abrirlo.
+    </p>
+  </div>
+
+  <div class="graph-wrap">
+    <canvas id="graph-canvas"></canvas>
+    <div class="graph-tooltip" id="graph-tooltip" hidden></div>
+    <p class="graph-empty" id="graph-empty" hidden>
+      Todavía no hay suficiente contenido para dibujar un grafo.
+    </p>
+    <noscript>
+      <p class="graph-empty">Este grafo necesita JavaScript. Consulta <a href="{{ '/' | relative_url }}">la home</a> para ver el listado normal de writeups.</p>
+    </noscript>
+  </div>
+</section>
+
+{% assign all_writeups = site.machines | concat: site.engagements %}
+{% assign visible = all_writeups | where_exp: "item", "item.status != 'active'" %}
+
+{% assign tag_string = "" %}
+{% for item in visible %}
+  {% for tag in item.tags %}
+    {% assign tag_string = tag_string | append: tag | append: "||" %}
+  {% endfor %}
+{% endfor %}
+{% assign all_tags = tag_string | split: "||" | uniq | sort %}
+
+{% assign edge_string = "" %}
+{% for item in visible %}
+  {% for tag in item.tags %}
+    {% assign edge_string = edge_string | append: item.url | append: "::" | append: tag | append: "||" %}
+  {% endfor %}
+{% endfor %}
+{% assign edge_pairs = edge_string | split: "||" %}
+
+<script type="application/json" id="graph-data">
+{
+  "nodes": [
+    {% for item in visible %}
+    {"id": {{ item.url | jsonify }}, "label": {{ item.title | jsonify }}, "type": "writeup", "kind": "{{ item.collection }}", "url": {{ item.url | relative_url | jsonify }}}{% unless forloop.last %},{% endunless %}
+    {% endfor %}
+    {% if visible.size > 0 and all_tags.size > 0 %},{% endif %}
+    {% for tag in all_tags %}
+    {"id": {{ "tag:" | append: tag | jsonify }}, "label": {{ "#" | append: tag | jsonify }}, "type": "tag"}{% unless forloop.last %},{% endunless %}
+    {% endfor %}
+  ],
+  "edges": [
+    {% for pair in edge_pairs %}
+    {% assign parts = pair | split: "::" %}
+    {"source": {{ parts[0] | jsonify }}, "target": {{ "tag:" | append: parts[1] | jsonify }}}{% unless forloop.last %},{% endunless %}
+    {% endfor %}
+  ]
+}
+</script>
+
+<script src="{{ '/assets/js/graph.js' | relative_url }}" defer></script>

@@ -1,30 +1,30 @@
 /* ==========================================================================
    Design tokens — tweak these to recolor the whole site.
-   Palette: neutral dark base (no yellow/olive cast) with a single amber
-   accent reserved for small, deliberate details. A moss green used only
-   as a very punctual secondary touch. No neon.
+   Palette: sampled directly from pff.jpg (cool near-black, moody, desaturated
+   — a warm mocha accent lifted from the skin tone, a cool slate secondary
+   lifted from the background shadow). No neon, no invented hues.
    ========================================================================== */
 :root {
-  /* surfaces — neutral dark, kept clear of warm tint */
-  --bg: #121212;
-  --surface: #1a1a19;
-  --surface-hover: #212120;
-  --hairline: #2c2b29;
-  --hairline-strong: #3a3836;
+  /* surfaces — cool near-black, slight violet undertone, sampled from the image */
+  --bg: #0e0d11;
+  --surface: #1a1820;
+  --surface-hover: #221f28;
+  --hairline: #332e38;
+  --hairline-strong: #433c48;
 
-  /* text — off-white, clean contrast, not cream */
-  --text: #e6e6e2;
-  --text-muted: #9c9a96;
-  --text-faint: #6b6965;
+  /* text — off-white, clean contrast */
+  --text: #ece6de;
+  --text-muted: #9c9490;
+  --text-faint: #6b6269;
 
-  /* the one accent — amber/gold, used sparingly (links, difficulty, details) */
-  --accent: #e0a34a;
-  --accent-dim: #a87730;
-  --accent-soft: #2a2013;
+  /* the one accent — warm mocha/taupe, sampled from the skin tone */
+  --accent: #a3877a;
+  --accent-dim: #7d685d;
+  --accent-soft: #241e1c;
 
-  /* secondary accent — moss green, very punctual (easy difficulty, copy success) */
-  --moss: #6e8b4e;
-  --moss-soft: #1e2117;
+  /* secondary accent — cool slate, sampled from the background shadow, very punctual */
+  --slate: #8a8694;
+  --slate-soft: #201f26;
 
   /* type */
   --font-display: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, "Noto Serif", serif;
@@ -333,11 +333,47 @@ code, pre, kbd, samp { font-family: var(--font-mono); }
 }
 .badge-os-linux, .badge-os-windows { background: transparent; color: var(--text-muted); border-color: var(--hairline-strong); }
 
-.badge-diff-easy { background: var(--moss-soft); color: var(--moss); }
+.badge-diff-easy { background: var(--slate-soft); color: var(--slate); }
 .badge-diff-medium { background: var(--accent-soft); color: var(--accent); }
 .badge-diff-hard { background: var(--accent-soft); color: var(--accent-dim); }
 
 .badge-type { background: var(--accent-soft); color: var(--accent); }
+
+/* ==========================================================================
+   Graph page
+   ========================================================================== */
+.graph-page { max-width: var(--max-width); margin: 0 auto 56px; padding: 0 32px; }
+.graph-head { max-width: 70ch; margin: 0 0 28px; }
+.graph-head h1 { font-family: var(--font-display); font-size: 2rem; font-weight: 500; margin: 0 0 10px; }
+.graph-head p { color: var(--text-muted); margin: 0; }
+
+.graph-wrap {
+  position: relative;
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius);
+  background: var(--bg);
+  overflow: hidden;
+}
+#graph-canvas { display: block; width: 100%; }
+
+.graph-tooltip {
+  position: absolute;
+  z-index: 5;
+  pointer-events: none;
+  background: var(--surface);
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--radius);
+  color: var(--text);
+  font-size: 0.8rem;
+  padding: 4px 9px;
+  white-space: nowrap;
+}
+
+.graph-empty {
+  padding: 48px 24px;
+  text-align: center;
+  color: var(--text-faint);
+}
 
 /* ==========================================================================
    Writeup page
@@ -538,7 +574,7 @@ code, pre, kbd, samp { font-family: var(--font-mono); }
   cursor: pointer;
 }
 .copy-btn:hover, .copy-btn:focus-visible { color: var(--text); border-color: var(--hairline-strong); }
-.copy-btn.is-copied { color: var(--moss); border-color: var(--moss); }
+.copy-btn.is-copied { color: var(--slate); border-color: var(--slate); }
 @media (prefers-reduced-motion: no-preference) {
   .copy-btn { transition: color 0.12s ease, border-color 0.12s ease; }
 }
@@ -550,7 +586,7 @@ code, pre, kbd, samp { font-family: var(--font-mono); }
 .highlight .k, .highlight .kn, .highlight .kd, .highlight .kp, .highlight .kr, .highlight .kt { color: var(--text-muted); }
 .highlight .s, .highlight .s1, .highlight .s2, .highlight .sb, .highlight .sc,
 .highlight .sd, .highlight .se, .highlight .sh, .highlight .si, .highlight .sx,
-.highlight .sr, .highlight .ss, .highlight .dl { color: var(--moss); }
+.highlight .sr, .highlight .ss, .highlight .dl { color: var(--slate); }
 .highlight .m, .highlight .mi, .highlight .mf, .highlight .mh, .highlight .mo, .highlight .il { color: var(--accent); }
 .highlight .nf, .highlight .nc, .highlight .nn, .highlight .nx { color: var(--accent-dim); }
 .highlight .nb, .highlight .bp { color: var(--text-muted); }
@@ -560,7 +596,7 @@ code, pre, kbd, samp { font-family: var(--font-mono); }
 .highlight .err { color: var(--accent-dim); }
 .highlight .gh, .highlight .gu { color: var(--text-muted); font-weight: 600; }
 .highlight .gd { color: var(--accent-dim); }
-.highlight .gi { color: var(--moss); }
+.highlight .gi { color: var(--slate); }
 
 /* ==========================================================================
    Responsive
