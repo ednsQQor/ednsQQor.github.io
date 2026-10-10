@@ -7,9 +7,9 @@ permalink: /graph/
   <div class="graph-head">
     <h1>Graph</h1>
     <p>
-      Vista de grafo al estilo Obsidian: cada máquina/engagement se conecta con sus
-      tags compartidos. Arrastra los nodos para reordenar, pasa el cursor para
-      resaltar conexiones, haz clic en un writeup para abrirlo.
+      Mapa de máquinas por plataforma: cada plataforma (HTB, TryHackMe, VulnHub…) es un
+      nodo central del que cuelgan sus máquinas. Arrastra los nodos para reordenar, pasa
+      el cursor para resaltar, y haz clic en una máquina para abrir su writeup.
     </p>
   </div>
 
@@ -17,7 +17,7 @@ permalink: /graph/
     <canvas id="graph-canvas"></canvas>
     <div class="graph-tooltip" id="graph-tooltip" hidden></div>
     <p class="graph-empty" id="graph-empty" hidden>
-      Todavía no hay suficiente contenido para dibujar un grafo.
+      Todavía no hay suficientes máquinas para dibujar un grafo.
     </p>
     <noscript>
       <p class="graph-empty">Este grafo necesita JavaScript. Consulta <a href="{{ '/' | relative_url }}">la home</a> para ver el listado normal de writeups.</p>
@@ -25,40 +25,34 @@ permalink: /graph/
   </div>
 </section>
 
-{% assign all_writeups = site.machines | concat: site.engagements %}
-{% assign visible = all_writeups | where_exp: "item", "item.status != 'active'" %}
+{% comment %}
+  Graph data: platforms are hub nodes, machines hang off their platform.
+  Active (not-yet-retired) machines are excluded so no locked content leaks.
+{% endcomment %}
+{% assign machines = site.machines | where_exp: "m", "m.status != 'active'" %}
 
-{% assign tag_string = "" %}
-{% for item in visible %}
-  {% for tag in item.tags %}
-    {% assign tag_string = tag_string | append: tag | append: "||" %}
-  {% endfor %}
+{% assign platform_string = "" %}
+{% for m in machines %}
+  {% assign p = m.platform | default: "Other" %}
+  {% assign platform_string = platform_string | append: p | append: "||" %}
 {% endfor %}
-{% assign all_tags = tag_string | split: "||" | uniq | sort %}
-
-{% assign edge_string = "" %}
-{% for item in visible %}
-  {% for tag in item.tags %}
-    {% assign edge_string = edge_string | append: item.url | append: "::" | append: tag | append: "||" %}
-  {% endfor %}
-{% endfor %}
-{% assign edge_pairs = edge_string | split: "||" %}
+{% assign platforms = platform_string | split: "||" | uniq | sort %}
 
 <script type="application/json" id="graph-data">
 {
   "nodes": [
-    {% for item in visible %}
-    {"id": {{ item.url | jsonify }}, "label": {{ item.title | jsonify }}, "type": "writeup", "kind": "{{ item.collection }}", "url": {{ item.url | relative_url | jsonify }}}{% unless forloop.last %},{% endunless %}
+    {% for p in platforms %}
+    {"id": {{ "platform:" | append: p | jsonify }}, "label": {{ p | jsonify }}, "type": "platform"}{% unless forloop.last %},{% endunless %}
     {% endfor %}
-    {% if visible.size > 0 and all_tags.size > 0 %},{% endif %}
-    {% for tag in all_tags %}
-    {"id": {{ "tag:" | append: tag | jsonify }}, "label": {{ "#" | append: tag | jsonify }}, "type": "tag"}{% unless forloop.last %},{% endunless %}
+    {% if platforms.size > 0 and machines.size > 0 %},{% endif %}
+    {% for m in machines %}
+    {"id": {{ m.url | jsonify }}, "label": {{ m.title | jsonify }}, "type": "writeup", "kind": {{ m.difficulty | default: "machine" | jsonify }}, "url": {{ m.url | relative_url | jsonify }}}{% unless forloop.last %},{% endunless %}
     {% endfor %}
   ],
   "edges": [
-    {% for pair in edge_pairs %}
-    {% assign parts = pair | split: "::" %}
-    {"source": {{ parts[0] | jsonify }}, "target": {{ "tag:" | append: parts[1] | jsonify }}}{% unless forloop.last %},{% endunless %}
+    {% for m in machines %}
+    {% assign p = m.platform | default: "Other" %}
+    {"source": {{ m.url | jsonify }}, "target": {{ "platform:" | append: p | jsonify }}}{% unless forloop.last %},{% endunless %}
     {% endfor %}
   ]
 }

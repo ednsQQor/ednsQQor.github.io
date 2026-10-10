@@ -90,7 +90,12 @@
     n.y = height / 2 + Math.sin(angle) * r + (Math.random() - 0.5) * 20;
     n.vx = 0;
     n.vy = 0;
-    n.radius = n.type === "writeup" ? 9 + Math.min(n.degree, 6) * 1.3 : 5 + Math.min(n.degree, 8);
+    // Platform hubs are the big nodes; machines are smaller satellites.
+    if (n.type === "platform") {
+      n.radius = 16 + Math.min(n.degree, 10) * 1.2;
+    } else {
+      n.radius = 9 + Math.min(n.degree, 6) * 1.3;
+    }
   });
 
   // ------------------------------------------------------------------
@@ -177,19 +182,22 @@
     // nodes
     nodes.forEach(function (n) {
       var dim = activeSet && !activeSet[n.id];
-      var isWriteup = n.type === "writeup";
+      var isPlatform = n.type === "platform";
       var isActive = n === hovered;
       ctx.globalAlpha = dim ? 0.3 : 1;
+
       ctx.beginPath();
       ctx.arc(n.x, n.y, n.radius, 0, Math.PI * 2);
-      ctx.fillStyle = isWriteup ? COLOR.surface : COLOR.bg;
+      // Platform hubs are filled surface with a bold accent ring; machines are
+      // darker satellites with a thin hairline ring (accent only on hover).
+      ctx.fillStyle = isPlatform ? COLOR.surface : COLOR.bg;
       ctx.fill();
-      ctx.lineWidth = isActive ? 2.5 : (isWriteup ? 2 : 1.5);
-      ctx.strokeStyle = isActive ? COLOR.accent : (isWriteup ? COLOR.accent : COLOR.hairline);
+      ctx.lineWidth = isActive ? 2.5 : (isPlatform ? 2.5 : 1.5);
+      ctx.strokeStyle = isActive ? COLOR.accent : (isPlatform ? COLOR.accent : COLOR.hairline);
       ctx.stroke();
 
-      ctx.font = (isWriteup ? "600 13px " : "12px ") + FONT_FAMILY;
-      ctx.fillStyle = isActive ? COLOR.accent : (isWriteup ? COLOR.text : COLOR.textMuted);
+      ctx.font = (isPlatform ? "700 14px " : "600 12px ") + FONT_FAMILY;
+      ctx.fillStyle = isActive ? COLOR.accent : (isPlatform ? COLOR.text : COLOR.textMuted);
       ctx.textAlign = "center";
       ctx.textBaseline = "top";
       ctx.fillText(n.label, n.x, n.y + n.radius + 4);
@@ -201,7 +209,7 @@
 
   // ------------------------------------------------------------------
   // Interaction: hover highlight + tooltip, drag to reposition,
-  // click a writeup node to navigate. Motion only happens in direct
+  // click a machine node to navigate. Motion only happens in direct
   // response to user action (drag), never auto-plays.
   // ------------------------------------------------------------------
   var dragging = null;
@@ -266,7 +274,7 @@
       hovered = n;
       draw();
     }
-    canvas.style.cursor = n ? "pointer" : "default";
+    canvas.style.cursor = (n && n.type === "writeup") ? "pointer" : (n ? "grab" : "default");
 
     if (n && tooltip) {
       tooltip.hidden = false;
