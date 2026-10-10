@@ -18,7 +18,7 @@
     {% endif %}
   </div>
 
-  <p class="card-summary lock-note">&#128274; Activa en {{ machine.platform | default: 'la plataforma' }} — entra para abrir el writeup.</p>
+  <p class="card-summary lock-note">&#128274; Bloqueado — se publica cuando la máquina se retire.</p>
 
   {% if machine.unlock_date %}
   <p class="card-countdown" data-unlock="{{ machine.unlock_date | date_to_xmlschema }}">
