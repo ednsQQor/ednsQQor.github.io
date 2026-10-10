@@ -272,6 +272,22 @@ code, pre, kbd, samp { font-family: var(--font-mono); }
 .meta-date { margin-left: auto; font-variant-numeric: tabular-nums; }
 .meta-platform { color: var(--text-muted); }
 
+.card-locked { opacity: 0.85; }
+.lock-note { color: var(--text-faint); font-style: italic; -webkit-line-clamp: 2; }
+
+.locked-notice {
+  max-width: var(--content-width);
+  margin: 0 auto;
+  padding: 20px 24px;
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text-muted);
+}
+.locked-notice p { margin: 0 0 10px; }
+.locked-notice p:last-child { margin-bottom: 0; }
+.locked-badge { color: var(--accent); font-weight: 600; }
+
 .card-hosts { display: flex; gap: 6px; flex-wrap: wrap; }
 .host-chip {
   font-family: var(--font-mono);

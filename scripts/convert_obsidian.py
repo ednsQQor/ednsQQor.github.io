@@ -27,6 +27,8 @@ difficulty: Medium # Easy | Medium | Hard
 tags: []
 summary: "TODO: one or two sentences for the home page card."
 platform: HTB
+# status: active      # uncomment if the machine is NOT retired yet (see README "Writeups bloqueados")
+# unlock_date: 2026-12-01
 ---
 
 """

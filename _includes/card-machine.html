@@ -1,6 +1,34 @@
 {% comment %}
   Renders one machine card. Expects `machine` to be set by the caller.
+  status: "active" -> locked card, metadata only, no summary/tags/content leak.
 {% endcomment %}
+{% if machine.status == "active" %}
+<a class="card card-machine card-locked"
+   href="{{ machine.url | relative_url }}"
+   data-type="machine"
+   data-name="{{ machine.title | downcase }}"
+   data-difficulty="{{ machine.difficulty | default: '' | downcase }}"
+   data-os="{{ machine.os | default: '' | downcase }}"
+   data-tags="locked">
+  <div class="card-top">
+    <h3 class="card-title">{{ machine.title }}</h3>
+    {% if machine.os %}
+    <span class="badge badge-os badge-os-{{ machine.os | downcase }}">{{ machine.os }}</span>
+    {% endif %}
+  </div>
+
+  <p class="card-summary lock-note">
+    &#128274; Locked — se publica cuando la máquina se retire{% if machine.unlock_date %} (previsto: {{ machine.unlock_date | date: "%d %b %Y" }}){% endif %}.
+  </p>
+
+  <div class="card-meta">
+    {% if machine.difficulty %}
+    <span class="badge badge-diff badge-diff-{{ machine.difficulty | downcase }}">{{ machine.difficulty }}</span>
+    {% endif %}
+    {% if machine.platform %}<span class="meta-platform">{{ machine.platform }}</span>{% endif %}
+  </div>
+</a>
+{% else %}
 <a class="card card-machine"
    href="{{ machine.url | relative_url }}"
    data-type="machine"
@@ -27,3 +55,4 @@
     {% endif %}
   </div>
 </a>
+{% endif %}
