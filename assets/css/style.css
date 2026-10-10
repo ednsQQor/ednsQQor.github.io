@@ -32,8 +32,7 @@
   --font-mono: "JetBrains Mono", "Fira Code", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 
   /* layout */
-  --max-width: 1100px;                    /* home page only */
-  --content-width: min(92vw, 1600px);     /* writeup page only — decoupled from the home page width */
+  --max-width: min(92vw, 1600px); /* shared page width — home and writeup pages alike */
   --radius: 2px;
 }
 
@@ -84,11 +83,30 @@ code, pre, kbd, samp { font-family: var(--font-mono); }
 }
 
 .site-header .wrap {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: space-between;
   height: 60px;
 }
+
+.nav-toggle {
+  display: none;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 4px;
+  width: 36px;
+  height: 36px;
+  background: transparent;
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius);
+  cursor: pointer;
+  padding: 0;
+}
+.nav-toggle span { display: block; width: 16px; height: 2px; background: var(--text-muted); }
+.nav-toggle:hover { border-color: var(--hairline-strong); }
+.nav-toggle:hover span { background: var(--text); }
 
 .brand {
   color: var(--text);
@@ -324,9 +342,9 @@ code, pre, kbd, samp { font-family: var(--font-mono); }
 /* ==========================================================================
    Writeup page
    ========================================================================== */
-.writeup { max-width: var(--content-width); margin: 0 auto; padding: 0 32px; }
+.writeup { max-width: var(--max-width); margin: 0 auto; padding: 0 32px; }
 
-.writeup-header { max-width: var(--content-width); margin: 0 auto 32px; }
+.writeup-header { max-width: var(--max-width); margin: 0 auto 32px; }
 .writeup-kicker { margin: 0 0 14px; }
 .writeup-kicker a { color: var(--text-muted); font-size: 0.85rem; }
 .writeup-kicker a:hover { color: var(--accent); }
@@ -360,7 +378,7 @@ code, pre, kbd, samp { font-family: var(--font-mono); }
 }
 
 /* hosts overview (engagements) */
-.hosts-overview { max-width: var(--content-width); margin: 0 auto 40px; }
+.hosts-overview { max-width: var(--max-width); margin: 0 auto 40px; }
 .hosts-overview h2 {
   display: flex;
   align-items: center;
@@ -389,7 +407,7 @@ code, pre, kbd, samp { font-family: var(--font-mono); }
   display: grid;
   grid-template-columns: 1fr;
   gap: 32px;
-  max-width: var(--content-width);
+  max-width: var(--max-width);
   margin: 0 auto;
 }
 
@@ -548,16 +566,34 @@ code, pre, kbd, samp { font-family: var(--font-mono); }
    Responsive
    ========================================================================== */
 @media (min-width: 900px) {
-  .writeup-layout { grid-template-columns: 220px 1fr; gap: 64px; max-width: var(--content-width); align-items: start; }
+  .writeup-layout { grid-template-columns: 220px 1fr; gap: 64px; max-width: var(--max-width); align-items: start; }
   .writeup-layout.no-toc { grid-template-columns: 1fr; }
   .writeup-toc { order: 0; position: sticky; top: 76px; max-height: calc(100vh - 100px); overflow-y: auto; }
   .writeup-toc summary { display: none; }
   .writeup-toc ol { display: block; }
 }
 
+@media (max-width: 760px) {
+  .nav-toggle { display: flex; }
+  .site-nav {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    flex-direction: column;
+    gap: 0;
+    background: var(--bg);
+    border-bottom: 1px solid var(--hairline);
+    padding: 4px 24px 12px;
+  }
+  .site-nav.is-open { display: flex; }
+  .site-nav a { padding: 10px 0; border-top: 1px solid var(--hairline); }
+  .site-nav a:first-child { border-top: none; }
+}
+
 @media (max-width: 640px) {
   .site-header .wrap { height: 54px; }
-  .site-nav { gap: 14px; }
   .hero h1 { font-size: 1.7rem; }
   .toolbar { flex-direction: column; align-items: stretch; }
   .view-tabs { margin-left: 0; }

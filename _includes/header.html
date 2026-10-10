@@ -3,7 +3,10 @@
     <a class="brand" href="{{ '/' | relative_url }}">
       <span class="brand-glyph">&gt;_</span>{{ site.author }}
     </a>
-    <nav class="site-nav">
+    <button type="button" class="nav-toggle" id="nav-toggle" aria-expanded="false" aria-controls="site-nav" aria-label="Abrir menú">
+      <span></span><span></span><span></span>
+    </button>
+    <nav class="site-nav" id="site-nav">
       <a href="{{ '/' | relative_url }}#machines">Machines</a>
       <a href="{{ '/' | relative_url }}#engagements">Engagements</a>
       <a href="https://github.com/{{ site.github_username }}" target="_blank" rel="noopener">GitHub</a>

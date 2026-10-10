@@ -153,9 +153,31 @@
     applyFilters();
   }
 
+  // --------------------------------------------------------------------
+  // Mobile/tablet nav: hamburger toggle for the horizontal header menu.
+  // --------------------------------------------------------------------
+  function initNavToggle() {
+    var toggle = document.getElementById("nav-toggle");
+    var nav = document.getElementById("site-nav");
+    if (!toggle || !nav) return;
+
+    toggle.addEventListener("click", function () {
+      var open = nav.classList.toggle("is-open");
+      toggle.setAttribute("aria-expanded", open ? "true" : "false");
+    });
+
+    nav.querySelectorAll("a").forEach(function (a) {
+      a.addEventListener("click", function () {
+        nav.classList.remove("is-open");
+        toggle.setAttribute("aria-expanded", "false");
+      });
+    });
+  }
+
   document.addEventListener("DOMContentLoaded", function () {
     initToc();
     initCopyButtons();
     initHomeFilters();
+    initNavToggle();
   });
 })();
