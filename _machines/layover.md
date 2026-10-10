@@ -6,6 +6,8 @@ difficulty: Medium
 tags: [htb-airways, wifi-sniffing, chisel, pivoting, craft-cms, ssti, unauthenticated-template-injection, cups, password-reuse, privilege-escalation]
 summary: "Credentials sniffed off an open Wi-Fi network, a chisel pivot into an internal Craft CMS instance vulnerable to an unsandboxed-Twig SSTI/RCE, and a CUPS buffer overflow for root."
 platform: HTB
+status: active
+# unlock_date: 2026-XX-XX   # <- fecha de retiro en HTB; al ponerla sale el contador
 ---
 
 [Layover](https://app.hackthebox.com/machines/Layover?sort_by=created_at&sort_type=desc)

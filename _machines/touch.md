@@ -6,6 +6,8 @@ difficulty: Easy
 tags: [htb-airways, kiosk-breakout, credential-exposure, browser-escape, mysql-udf-privesc]
 summary: "Breaking out of a locked-down airport check-in kiosk via a leaked device API credential and a browser escape, then escalating to SYSTEM through a MySQL UDF privesc."
 platform: HTB
+status: active
+# unlock_date: 2026-XX-XX   # <- fecha de retiro en HTB; al ponerla sale el contador
 ---
 
 [Touch](https://app.hackthebox.com/machines/Touch?sort_by=created_at&sort_type=desc)
