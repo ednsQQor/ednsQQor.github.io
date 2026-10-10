@@ -17,10 +17,10 @@ status: active        # o "retired" (o simplemente no poner el campo = retired)
 unlock_date: 2026-12-01   # opcional, solo informativo
 ```
 
-- **`retired`** (o sin `status`): se publica normal, contenido visible.
-- **`active`**: en la home sale una tarjeta con nombre, SO y dificultad y el aviso
-  "🔒 Locked — se publica cuando la máquina se retire". La página de la máquina
-  (`/machines/slug/`) solo muestra ese mismo aviso. El `summary`, los `tags` y el
+- **`retired`** (o sin `status`): se publica normal, contenido visible, badge "RETIRED".
+- **`active`**: en la home sale una tarjeta con nombre, SO, dificultad, badge "ACTIVE" y
+  un **countdown en vivo** hasta `unlock_date` (si lo pones). La página de la máquina
+  (`/machines/slug/`) muestra ese mismo aviso + countdown. El `summary`, los `tags` y el
   cuerpo del writeup **no se imprimen en ningún HTML** mientras `status: active`.
 
 **⚠️ Regla crítica — este repo es público.** Que el sitio no *muestre* el contenido no
@@ -40,6 +40,12 @@ Cuando se retire:
    apuntando al mismo `slug` que ya existe en `_machines/`.
 2. Cambia `status: active` a `status: retired` (o quita el campo).
 3. `git add`, `git commit`, `git push`. Ahora sí se publica con todo el contenido.
+
+## Pendiente de rellenar
+
+Las secciones **03 — ABOUT** y **04 — CONNECT** de `index.html` tienen placeholders
+`TODO`: bio, áreas de foco, certificaciones, LinkedIn y email. Edita directamente ese
+archivo para sustituirlos por tu contenido real.
 
 ## Licencia
 

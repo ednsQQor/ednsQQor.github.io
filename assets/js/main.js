@@ -56,6 +56,32 @@
   }
 
   // --------------------------------------------------------------------
+  // Highlight the writeup's closing section (conclusion / lessons learned):
+  // wrap the last h2 + everything after it in a visually distinct box.
+  // --------------------------------------------------------------------
+  function initClosingSection() {
+    var content = document.getElementById("writeup-content");
+    if (!content) return;
+
+    var headings = content.querySelectorAll("h2");
+    if (headings.length < 2) return;
+
+    var last = headings[headings.length - 1];
+    var wrapper = document.createElement("div");
+    wrapper.className = "writeup-closing";
+
+    var toMove = [];
+    var node = last;
+    while (node) {
+      toMove.push(node);
+      node = node.nextSibling;
+    }
+
+    content.insertBefore(wrapper, last);
+    toMove.forEach(function (n) { wrapper.appendChild(n); });
+  }
+
+  // --------------------------------------------------------------------
   // "Copy" button on every Rouge code block.
   // --------------------------------------------------------------------
   function initCopyButtons() {
@@ -104,11 +130,34 @@
 
     var searchInput = document.getElementById("search-input");
     var diffFilter = document.getElementById("difficulty-filter");
+    var sortSelect = document.getElementById("sort-select");
     var tabs = document.querySelectorAll(".view-tab");
     var machinesSection = document.getElementById("machines");
     var engagementsSection = document.getElementById("engagements");
     var noResults = document.getElementById("no-results");
     var currentView = "all";
+
+    var diffOrder = { easy: 0, medium: 1, hard: 2 };
+    function applySort() {
+      var mode = sortSelect ? sortSelect.value : "recent";
+      [document.getElementById("machines-grid"), document.getElementById("engagements-grid")].forEach(function (grid) {
+        if (!grid) return;
+        var items = Array.prototype.slice.call(grid.children);
+        items.sort(function (a, b) {
+          if (mode === "difficulty") {
+            var da = diffOrder[a.getAttribute("data-difficulty")];
+            var db = diffOrder[b.getAttribute("data-difficulty")];
+            if (da === undefined) da = 99;
+            if (db === undefined) db = 99;
+            return da - db;
+          }
+          var ta = Date.parse(a.getAttribute("data-date")) || 0;
+          var tb = Date.parse(b.getAttribute("data-date")) || 0;
+          return tb - ta;
+        });
+        items.forEach(function (el) { grid.appendChild(el); });
+      });
+    }
 
     function applyFilters() {
       var q = ((searchInput && searchInput.value) || "").trim().toLowerCase();
@@ -141,6 +190,7 @@
 
     if (searchInput) searchInput.addEventListener("input", applyFilters);
     if (diffFilter) diffFilter.addEventListener("change", applyFilters);
+    if (sortSelect) sortSelect.addEventListener("change", applySort);
     tabs.forEach(function (tab) {
       tab.addEventListener("click", function () {
         tabs.forEach(function (t) { t.classList.remove("is-active"); });
@@ -150,7 +200,18 @@
       });
     });
 
+    applySort();
     applyFilters();
+
+    // "/" focuses search, unless the user is already typing somewhere.
+    document.addEventListener("keydown", function (evt) {
+      if (evt.key !== "/" || !searchInput) return;
+      var active = document.activeElement;
+      var typing = active && (active.tagName === "INPUT" || active.tagName === "TEXTAREA" || active.isContentEditable);
+      if (typing) return;
+      evt.preventDefault();
+      searchInput.focus();
+    });
   }
 
   // --------------------------------------------------------------------
@@ -174,10 +235,55 @@
     });
   }
 
+  // --------------------------------------------------------------------
+  // Live countdown to unlock_date on locked/active machine cards + pages.
+  // --------------------------------------------------------------------
+  function initCountdowns() {
+    var els = document.querySelectorAll("[data-unlock]");
+    if (!els.length) return;
+
+    function render() {
+      var now = Date.now();
+      els.forEach(function (el) {
+        var target = Date.parse(el.getAttribute("data-unlock"));
+        var out = el.querySelector(".countdown-value");
+        if (!out || isNaN(target)) return;
+        var diff = target - now;
+        if (diff <= 0) {
+          out.textContent = "unlocking soon";
+          return;
+        }
+        var d = Math.floor(diff / 86400000);
+        var h = Math.floor((diff % 86400000) / 3600000);
+        var m = Math.floor((diff % 3600000) / 60000);
+        var s = Math.floor((diff % 60000) / 1000);
+        out.textContent = d + "d " + h + "h " + m + "m " + s + "s";
+      });
+    }
+
+    render();
+    setInterval(render, 1000);
+  }
+
+  // --------------------------------------------------------------------
+  // "Volver arriba" button (04 — Connect).
+  // --------------------------------------------------------------------
+  function initBackToTop() {
+    var btn = document.getElementById("back-to-top");
+    if (!btn) return;
+    btn.addEventListener("click", function () {
+      var reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      window.scrollTo({ top: 0, behavior: reduceMotion ? "auto" : "smooth" });
+    });
+  }
+
   document.addEventListener("DOMContentLoaded", function () {
+    initClosingSection();
     initToc();
     initCopyButtons();
     initHomeFilters();
     initNavToggle();
+    initCountdowns();
+    initBackToTop();
   });
 })();

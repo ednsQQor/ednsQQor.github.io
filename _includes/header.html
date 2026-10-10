@@ -1,14 +1,17 @@
 <header class="site-header">
   <div class="wrap">
     <a class="brand" href="{{ '/' | relative_url }}">
+      <img class="avatar" src="{{ '/assets/img/avatar.jpg' | relative_url }}" alt="" width="32" height="32">
       <span class="brand-glyph">&gt;_</span>{{ site.author }}
     </a>
     <button type="button" class="nav-toggle" id="nav-toggle" aria-expanded="false" aria-controls="site-nav" aria-label="Abrir menú">
       <span></span><span></span><span></span>
     </button>
     <nav class="site-nav" id="site-nav">
-      <a href="{{ '/' | relative_url }}#machines">Machines</a>
-      <a href="{{ '/' | relative_url }}#engagements">Engagements</a>
+      <a href="{{ '/' | relative_url }}#machines">01 Machines</a>
+      <a href="{{ '/' | relative_url }}#engagements">02 Engagements</a>
+      <a href="{{ '/' | relative_url }}#about">03 About</a>
+      <a href="{{ '/' | relative_url }}#connect">04 Connect</a>
       <a href="{{ '/graph/' | relative_url }}">Graph</a>
       <a href="https://github.com/{{ site.github_username }}" target="_blank" rel="noopener">GitHub</a>
     </nav>

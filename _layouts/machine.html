@@ -28,6 +28,11 @@ layout: default
       El writeup se publicará en cuanto se retire{% if page.unlock_date %}, previsto para
       <strong>{{ page.unlock_date | date: "%d %B %Y" }}</strong>{% endif %}.
     </p>
+    {% if page.unlock_date %}
+    <p class="locked-countdown" data-unlock="{{ page.unlock_date | date_to_xmlschema }}">
+      <span class="countdown-value">—</span>
+    </p>
+    {% endif %}
   </div>
   {% else %}
   <div class="writeup-layout">

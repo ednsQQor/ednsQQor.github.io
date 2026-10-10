@@ -28,13 +28,12 @@
   // ------------------------------------------------------------------
   var css = getComputedStyle(document.documentElement);
   var COLOR = {
-    text: css.getPropertyValue("--text").trim() || "#ece6de",
-    textMuted: css.getPropertyValue("--text-muted").trim() || "#9c9490",
-    hairline: css.getPropertyValue("--hairline-strong").trim() || "#433c48",
-    accent: css.getPropertyValue("--accent").trim() || "#a3877a",
-    slate: css.getPropertyValue("--slate").trim() || "#8a8694",
-    surface: css.getPropertyValue("--surface").trim() || "#1a1820",
-    bg: css.getPropertyValue("--bg").trim() || "#0e0d11"
+    text: css.getPropertyValue("--text").trim() || "#e8e8e8",
+    textMuted: css.getPropertyValue("--text-muted").trim() || "#8a8a8a",
+    hairline: css.getPropertyValue("--hairline-strong").trim() || "#343434",
+    accent: css.getPropertyValue("--accent").trim() || "#e03e3e",
+    surface: css.getPropertyValue("--surface").trim() || "#161616",
+    bg: css.getPropertyValue("--bg").trim() || "#0f0f0f"
   };
   // Canvas's `font` property can't parse CSS var() — resolve the real stack.
   var FONT_FAMILY = css.getPropertyValue("--font-body").trim() || "sans-serif";
@@ -179,17 +178,18 @@
     nodes.forEach(function (n) {
       var dim = activeSet && !activeSet[n.id];
       var isWriteup = n.type === "writeup";
+      var isActive = n === hovered;
       ctx.globalAlpha = dim ? 0.3 : 1;
       ctx.beginPath();
       ctx.arc(n.x, n.y, n.radius, 0, Math.PI * 2);
       ctx.fillStyle = isWriteup ? COLOR.surface : COLOR.bg;
       ctx.fill();
-      ctx.lineWidth = isWriteup ? 2 : 1.5;
-      ctx.strokeStyle = isWriteup ? COLOR.accent : COLOR.slate;
+      ctx.lineWidth = isActive ? 2.5 : (isWriteup ? 2 : 1.5);
+      ctx.strokeStyle = isActive ? COLOR.accent : (isWriteup ? COLOR.accent : COLOR.hairline);
       ctx.stroke();
 
       ctx.font = (isWriteup ? "600 13px " : "12px ") + FONT_FAMILY;
-      ctx.fillStyle = isWriteup ? COLOR.text : COLOR.textMuted;
+      ctx.fillStyle = isActive ? COLOR.accent : (isWriteup ? COLOR.text : COLOR.textMuted);
       ctx.textAlign = "center";
       ctx.textBaseline = "top";
       ctx.fillText(n.label, n.x, n.y + n.radius + 4);

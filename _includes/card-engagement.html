@@ -7,6 +7,7 @@
    data-name="{{ engagement.title | downcase }}"
    data-difficulty=""
    data-os=""
+   data-date="{{ engagement.date | date_to_xmlschema }}"
    data-tags="engagement">
   <div class="card-top">
     <h3 class="card-title">{{ engagement.title }}</h3>

@@ -9,6 +9,7 @@
    data-name="{{ machine.title | downcase }}"
    data-difficulty="{{ machine.difficulty | default: '' | downcase }}"
    data-os="{{ machine.os | default: '' | downcase }}"
+   data-date="{{ machine.date | date_to_xmlschema }}"
    data-tags="locked">
   <div class="card-top">
     <h3 class="card-title">{{ machine.title }}</h3>
@@ -17,15 +18,20 @@
     {% endif %}
   </div>
 
-  <p class="card-summary lock-note">
-    &#128274; Locked — se publica cuando la máquina se retire{% if machine.unlock_date %} (previsto: {{ machine.unlock_date | date: "%d %b %Y" }}){% endif %}.
+  <p class="card-summary lock-note">&#128274; Locked — se publica cuando la máquina se retire.</p>
+
+  {% if machine.unlock_date %}
+  <p class="card-countdown" data-unlock="{{ machine.unlock_date | date_to_xmlschema }}">
+    <span class="countdown-value">—</span>
   </p>
+  {% endif %}
 
   <div class="card-meta">
     {% if machine.difficulty %}
     <span class="badge badge-diff badge-diff-{{ machine.difficulty | downcase }}">{{ machine.difficulty }}</span>
     {% endif %}
-    {% if machine.platform %}<span class="meta-platform">{{ machine.platform }}</span>{% endif %}
+    <span class="badge badge-status-active">ACTIVE</span>
+    {% if machine.platform %}<span class="badge badge-platform">{{ machine.platform }}</span>{% endif %}
   </div>
 </a>
 {% else %}
@@ -35,6 +41,7 @@
    data-name="{{ machine.title | downcase }}"
    data-difficulty="{{ machine.difficulty | default: '' | downcase }}"
    data-os="{{ machine.os | default: '' | downcase }}"
+   data-date="{{ machine.date | date_to_xmlschema }}"
    data-tags="{{ machine.tags | join: ' ' | downcase }}">
   <div class="card-top">
     <h3 class="card-title">{{ machine.title }}</h3>
@@ -45,11 +52,19 @@
 
   <p class="card-summary">{{ machine.summary }}</p>
 
+  {% if machine.tags %}
+  <div class="card-topics">
+    {% for tag in machine.tags limit: 4 %}<span class="tag">{{ tag }}</span>{% endfor %}
+    {% if machine.tags.size > 4 %}<span class="tag tag-more">+{{ machine.tags.size | minus: 4 }}</span>{% endif %}
+  </div>
+  {% endif %}
+
   <div class="card-meta">
     {% if machine.difficulty %}
     <span class="badge badge-diff badge-diff-{{ machine.difficulty | downcase }}">{{ machine.difficulty }}</span>
     {% endif %}
-    {% if machine.platform %}<span class="meta-platform">{{ machine.platform }}</span>{% endif %}
+    <span class="badge badge-status-retired">RETIRED</span>
+    {% if machine.platform %}<span class="badge badge-platform">{{ machine.platform }}</span>{% endif %}
     {% if machine.date %}
     <time class="meta-date" datetime="{{ machine.date | date_to_xmlschema }}">{{ machine.date | date: "%d %b %Y" }}</time>
     {% endif %}
