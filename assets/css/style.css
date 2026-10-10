@@ -32,9 +32,8 @@
   --font-mono: "JetBrains Mono", "Fira Code", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 
   /* layout */
-  --max-width: 1100px;
-  --content-width: 1100px; /* outer bound for the writeup page (header/TOC/content row) */
-  --prose-width: 75ch;     /* actual reading measure, independent of the above */
+  --max-width: 1100px;                    /* home page only */
+  --content-width: min(92vw, 1600px);     /* writeup page only — decoupled from the home page width */
   --radius: 2px;
 }
 
@@ -277,7 +276,7 @@ code, pre, kbd, samp { font-family: var(--font-mono); }
 .lock-note { color: var(--text-faint); font-style: italic; -webkit-line-clamp: 2; }
 
 .locked-notice {
-  max-width: var(--prose-width);
+  max-width: 60ch;
   margin: 0 auto;
   padding: 20px 24px;
   border: 1px solid var(--hairline);
@@ -325,7 +324,7 @@ code, pre, kbd, samp { font-family: var(--font-mono); }
 /* ==========================================================================
    Writeup page
    ========================================================================== */
-.writeup { max-width: var(--max-width); margin: 0 auto; padding: 0 24px; }
+.writeup { max-width: var(--content-width); margin: 0 auto; padding: 0 32px; }
 
 .writeup-header { max-width: var(--content-width); margin: 0 auto 32px; }
 .writeup-kicker { margin: 0 0 14px; }
@@ -421,8 +420,7 @@ code, pre, kbd, samp { font-family: var(--font-mono); }
 
 .writeup-content {
   min-width: 0;
-  max-width: var(--prose-width);
-  font-size: 1.125rem;
+  font-size: 1.1875rem;
   line-height: 1.7;
 }
 .writeup-content h2 {
