@@ -74,3 +74,4 @@ exclude:
   - LICENSE
   - "*.gemspec"
   - deploy.bat
+  - publicador.html

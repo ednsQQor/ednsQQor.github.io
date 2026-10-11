@@ -10,17 +10,41 @@ layout: default
       {% if page.os %}<span class="badge badge-os badge-os-{{ page.os | downcase }}">{{ page.os }}</span>{% endif %}
       {% if page.difficulty %}<span class="badge badge-diff badge-diff-{{ page.difficulty | downcase }}">{{ page.difficulty }}</span>{% endif %}
       {% if page.platform %}<span class="meta-platform">{{ page.platform }}</span>{% endif %}
-      {% if page.status != "active" and page.date %}<time datetime="{{ page.date | date_to_xmlschema }}">{{ page.date | date: "%d %B %Y" }}</time>{% endif %}
+      {% if page.date and page.status != "active" and page.lock != "timelock" %}<time datetime="{{ page.date | date_to_xmlschema }}">{{ page.date | date: "%d %B %Y" }}</time>{% endif %}
     </div>
 
-    {% if page.status != "active" and page.tags %}
+    {% if page.tags and page.status != "active" and page.lock != "timelock" %}
     <div class="tag-list">
       {% for tag in page.tags %}<span class="tag">{{ tag }}</span>{% endfor %}
     </div>
     {% endif %}
   </header>
 
-  {% if page.status == "active" %}
+  {% if page.lock == "timelock" %}
+  {%- comment -%}
+    Time-lock drand: el contenido va cifrado en page.cipher (base64 de un fichero age).
+    La clave no existe hasta la ronda de drand correspondiente a unlock_date; al llegar,
+    el navegador la pide a drand, descifra y renderiza. Ni el autor ni GitHub pueden antes.
+  {%- endcomment -%}
+  <div class="locked-notice timelock" data-unlock="{{ page.unlock_date }}" data-round="{{ page.unlock_round }}">
+    <p class="locked-badge">&#128274; Bloqueado con time-lock (drand)</p>
+    <p>
+      Este writeup está cifrado y se desbloquea solo cuando la máquina retire{% if page.unlock_date %}, previsto para
+      <strong>{{ page.unlock_date | date: "%d %B %Y" }}</strong>{% endif %}. Nadie puede abrirlo antes, ni el autor.
+    </p>
+    <p class="locked-countdown"><span class="countdown-value" id="tl-countdown">&mdash;</span></p>
+    <p class="locked-status" id="tl-status"></p>
+  </div>
+  <script id="tl-cipher" type="text/plain">{{ page.cipher }}</script>
+  <div class="writeup-layout" id="tl-writeup" hidden>
+    <nav class="writeup-toc" id="toc" aria-label="Table of contents"></nav>
+    <div class="writeup-content" id="writeup-content"></div>
+  </div>
+  <script src="{{ '/assets/js/marked.min.js' | relative_url }}"></script>
+  <script src="{{ '/assets/js/tlock.bundle.min.js' | relative_url }}"></script>
+  <script src="{{ '/assets/js/timelock.js' | relative_url }}"></script>
+
+  {% elsif page.status == "active" %}
   <div class="locked-notice">
     <p class="locked-badge">&#128274; Bloqueado — máquina activa{% if page.platform %} en {{ page.platform }}{% endif %}</p>
     <p>
@@ -34,6 +58,7 @@ layout: default
     </p>
     {% endif %}
   </div>
+
   {% else %}
   <div class="writeup-layout">
     <nav class="writeup-toc" id="toc" aria-label="Table of contents"></nav>
