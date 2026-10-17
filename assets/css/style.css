@@ -782,3 +782,62 @@ code, pre, kbd, samp { font-family: var(--font-mono); }
   .writeup-header h1 { font-size: 1.5rem; }
   .footer-note { margin-left: 0; width: 100%; }
 }
+
+/* ============================================================
+   Writeup reading experience (added): reading time, heading
+   anchors, TOC scrollspy, preview hero. Uses existing palette
+   vars only — no new colours.
+   ============================================================ */
+
+/* Estimated reading time in the writeup meta row */
+.reading-time {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+.reading-time::before {
+  content: "·";
+  color: var(--text-faint);
+  margin-right: 0.5em;
+}
+
+/* Clickable "#" anchor that fades in when you hover a heading */
+.writeup-content h2,
+.writeup-content h3 { position: relative; }
+.writeup-content .heading-anchor {
+  margin-left: 0.4em;
+  color: var(--text-faint);
+  opacity: 0;
+  font-weight: 400;
+  text-decoration: none;
+  transition: opacity 0.12s ease, color 0.12s ease;
+}
+.writeup-content h2:hover .heading-anchor,
+.writeup-content h3:hover .heading-anchor,
+.writeup-content .heading-anchor:focus { opacity: 1; }
+.writeup-content .heading-anchor:hover { color: var(--accent); }
+
+/* Active section highlight in the sticky TOC (scrollspy) */
+.writeup-toc a {
+  display: block;
+  border-left: 2px solid transparent;
+  padding-left: 10px;
+  margin-left: -12px;
+  transition: color 0.12s ease, border-color 0.12s ease;
+}
+.writeup-toc a.is-active {
+  color: var(--accent);
+  border-left-color: var(--accent);
+}
+
+/* Optional preview image at the top of a writeup (front matter: image:) */
+.writeup-hero {
+  max-width: var(--max-width);
+  margin: 0 auto 32px;
+}
+.writeup-hero img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius);
+}

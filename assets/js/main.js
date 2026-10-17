@@ -82,6 +82,72 @@
   }
 
   // --------------------------------------------------------------------
+  // Clickable anchor (#) on every writeup heading — appears on hover.
+  // --------------------------------------------------------------------
+  function initHeadingAnchors() {
+    var content = document.getElementById("writeup-content");
+    if (!content) return;
+    content.querySelectorAll("h2[id], h3[id]").forEach(function (h) {
+      if (h.querySelector(".heading-anchor")) return;
+      var a = document.createElement("a");
+      a.className = "heading-anchor";
+      a.href = "#" + h.id;
+      a.setAttribute("aria-label", "Enlace a esta sección");
+      a.textContent = "#";
+      h.appendChild(a);
+    });
+  }
+
+  // --------------------------------------------------------------------
+  // Scrollspy: highlight the TOC entry for the section currently in view.
+  // --------------------------------------------------------------------
+  function initScrollSpy() {
+    var content = document.getElementById("writeup-content");
+    var toc = document.getElementById("toc");
+    if (!content || !toc) return;
+
+    var links = Array.prototype.slice.call(toc.querySelectorAll("a"));
+    if (!links.length) return;
+
+    var map = {};
+    links.forEach(function (a) {
+      var id = decodeURIComponent((a.getAttribute("href") || "").replace(/^#/, ""));
+      if (id) map[id] = a;
+    });
+
+    var headings = Array.prototype.slice
+      .call(content.querySelectorAll("h2, h3"))
+      .filter(function (h) { return h.id && map[h.id]; });
+    if (!headings.length) return;
+
+    var current = null;
+    function setActive(id) {
+      if (current === id) return;
+      current = id;
+      links.forEach(function (a) { a.classList.remove("is-active"); });
+      if (map[id]) map[id].classList.add("is-active");
+    }
+
+    function onScroll() {
+      var offset = 90; // roughly below the sticky header
+      var active = headings[0].id;
+      for (var i = 0; i < headings.length; i++) {
+        if (headings[i].getBoundingClientRect().top - offset <= 0) active = headings[i].id;
+        else break;
+      }
+      setActive(active);
+    }
+
+    var ticking = false;
+    window.addEventListener("scroll", function () {
+      if (ticking) return;
+      ticking = true;
+      window.requestAnimationFrame(function () { onScroll(); ticking = false; });
+    }, { passive: true });
+    onScroll();
+  }
+
+  // --------------------------------------------------------------------
   // "Copy" button on every Rouge code block.
   // --------------------------------------------------------------------
   function initCopyButtons() {
@@ -280,6 +346,8 @@
   document.addEventListener("DOMContentLoaded", function () {
     initClosingSection();
     initToc();
+    initHeadingAnchors();
+    initScrollSpy();
     initCopyButtons();
     initHomeFilters();
     initNavToggle();

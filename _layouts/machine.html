@@ -1,6 +1,9 @@
 ---
 layout: default
 ---
+{%- comment -%} Reading time (≈200 wpm). Empty on locked writeups (no rendered body). {%- endcomment -%}
+{%- assign _words = content | strip_html | number_of_words -%}
+{%- assign _readtime = _words | divided_by: 200 | plus: 1 -%}
 <article class="writeup">
   <header class="writeup-header">
     <p class="writeup-kicker"><a href="{{ '/' | relative_url }}#machines">&larr; Machines</a></p>
@@ -11,6 +14,7 @@ layout: default
       {% if page.difficulty %}<span class="badge badge-diff badge-diff-{{ page.difficulty | downcase }}">{{ page.difficulty }}</span>{% endif %}
       {% if page.platform %}<span class="meta-platform">{{ page.platform }}</span>{% endif %}
       {% if page.date and page.status != "active" and page.lock != "timelock" %}<time datetime="{{ page.date | date_to_xmlschema }}">{{ page.date | date: "%d %B %Y" }}</time>{% endif %}
+      {% if _words > 0 and page.status != "active" and page.lock != "timelock" %}<span class="reading-time" title="Tiempo de lectura estimado">{{ _readtime }} min read</span>{% endif %}
     </div>
 
     {% if page.tags and page.status != "active" and page.lock != "timelock" %}
@@ -60,6 +64,11 @@ layout: default
   </div>
 
   {% else %}
+  {% if page.image %}
+  <figure class="writeup-hero">
+    <img src="{{ page.image | relative_url }}" alt="{{ page.title }} — preview" loading="lazy">
+  </figure>
+  {% endif %}
   <div class="writeup-layout">
     <nav class="writeup-toc" id="toc" aria-label="Table of contents"></nav>
     <div class="writeup-content" id="writeup-content">
