@@ -398,10 +398,11 @@ code, pre, kbd, samp { font-family: var(--font-mono); }
 }
 .badge-os-linux, .badge-os-windows { background: transparent; color: var(--text-muted); border-color: var(--hairline-strong); }
 
-/* severity expressed by intensity, not a second hue: neutral -> soft red -> solid red */
+/* severity expressed by intensity, not a second hue: neutral -> soft red -> solid red -> solid red + glow */
 .badge-diff-easy { background: transparent; color: var(--text-muted); border-color: var(--hairline-strong); }
 .badge-diff-medium { background: var(--accent-soft); color: var(--accent); }
 .badge-diff-hard { background: var(--accent); color: var(--bg); border-color: var(--accent); }
+.badge-diff-insane { background: var(--accent); color: var(--bg); border-color: var(--accent); font-weight: 700; box-shadow: 0 0 8px -1px var(--accent); }
 
 .badge-status-retired { background: transparent; color: var(--text-muted); border-color: var(--hairline-strong); }
 .badge-status-active { background: var(--accent-soft); color: var(--accent); }
