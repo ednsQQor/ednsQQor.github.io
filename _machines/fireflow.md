@@ -10,19 +10,11 @@ platform: HTB
 
 [Fireflow](https://app.hackthebox.com/machines/Fireflow?tab=play_machine)
 
-## Machine Information
-
-| | |
-|---|---|
-| **Name** | Fireflow |
-| **Difficulty** | Medium |
-| **OS** | Linux |
-
 This box ended up being a three-stage chain: an unauthenticated RCE in a Langflow-based AI agent platform, a JWT signature bypass against an internal "MCP Tool Registry," and finally a Kubernetes kubelet abuse to break straight out to the host as root. Classic case of one sloppy web app bug snowballing once you start pivoting between internal services that all trust each other a little too much.
 
 ---
 
-## Mapping the Box
+## Reconnaissance
 
 First move, always: ping it and make sure there's actually something to attack before burning time on anything fancier.
 
@@ -46,6 +38,10 @@ nmap -p22,443 -sCV --min-rate=5000 -Pn -n fireflow.htb -oG AllInfo
 
 SSH is OpenSSH 9.6p1 on Ubuntu, up to date — nothing jumping out there. Port 443 is Nginx with a self-signed cert, and the cert is actually the interesting part: the Subject Alternative Name lists `*.fireflow.htb`, a wildcard. That's basically a neon sign saying "there are subdomains you haven't found yet."
 
+---
+
+## Enumeration
+
 I threw `whatweb` at the main site to squeeze out a bit more fingerprinting:
 
 ```bash
@@ -64,7 +60,7 @@ The landing page called this the "Nightfall AI Agent," built on a "Flow engine" 
 
 ---
 
-## Turning a Public Flow Into a Shell
+## Foothold: unauthenticated RCE in Langflow (`build_public_tmp`)
 
 A quick search turned up a public writeup/PoC for an unauthenticated RCE sitting in Langflow's public flow-building endpoint. Exactly what I wanted to see.
 
@@ -156,9 +152,7 @@ penelope -p 4444
 
 ![](/assets/machines/fireflow/pasted-image-20260925220348.png)
 
----
-
-## From www-data to nightfall (via a Reused Password)
+### From www-data to nightfall (reused `.env` password)
 
 With a foothold as `www-data`, the obvious next move was going hunting for credentials in config files — self-hosted app deployments love to leave the superuser password and secret key sitting in a plaintext `.env` right next to the app config. Langflow's docs point at a few standard locations for that file, and `/etc/langflow/.env` was one of them:
 
@@ -188,7 +182,9 @@ And it worked — the app's superuser password had been recycled as `nightfall`'
 
 ---
 
-## A Hidden .mcp Folder, and a Second Set of Credentials
+## Privilege escalation: forged `alg:none` JWT → MCP tool-registry RCE → kubelet exec breakout
+
+### A hidden `.mcp` folder, and a second set of credentials
 
 Poking around `nightfall`'s home directory, I spotted an odd hidden folder: `.mcp`.
 
@@ -313,9 +309,7 @@ curl -s -X POST http://127.0.0.1:30080/api/v1/tools -H "Authorization: Bearer $f
 
 Invoking that tool through `/mcp` dropped me into an interactive shell as `mcp` — on what turned out to be a completely different host from the main Fireflow box. This service runs in its own container.
 
----
-
-## Breaking Out to the Node Through the Kubelet API
+### Breaking out to the node through the kubelet API
 
 Looking around the new shell, it was pretty obvious I'd landed inside a Kubernetes pod rather than a plain VM: there's a `/var/run/secrets/kubernetes.io/serviceaccount` directory sitting there with a service account token, namespace file, and CA cert — the standard mount every pod gets.
 
@@ -381,14 +375,7 @@ Machine pwned.
 
 ---
 
-## Flags
-
-- **User:** read from `/home/nightfall/user.txt` after escalating `www-data` → `nightfall` via the reused `.env` password.
-- **Root:** read from the host filesystem, reached by exec'ing into the privileged `node-exporter` pod through the kubelet API.
-
----
-
-## Lessons Learned / Mitigation
+## Reflection
 
 A few things stacked up here, and any one of them being fixed would have broken the chain:
 

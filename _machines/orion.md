@@ -10,19 +10,11 @@ summary: "Pre-auth RCE in Craft CMS (CVE-2025-32432) for a foothold, DB creds fr
 
 [Orion](https://app.hackthebox.com/machines/Orion)
 
-## Machine Information
-
-| | |
-|---|---|
-| **Name** | Orion |
-| **Difficulty** | Easy |
-| **OS** | Linux |
-
 This one chained a pre-auth RCE in Craft CMS (CVE-2025-32432) for the initial foothold, database credentials sitting in plain `env` output that led to the admin's bcrypt hash, a cracked password reused over SSH, and a root shell through an argument-injection bug in GNU inetutils' `telnetd` (CVE-2026-24061) that let `login` be told to authenticate as root with no password at all.
 
 ---
 
-## Enumeration
+## Reconnaissance
 
 Standard opener: a full TCP port sweep before anything else, so I don't waste time against a service I never actually confirmed was open.
 
@@ -40,7 +32,13 @@ nmap -p<ports> -sCV orion.htb
 
 ![](/assets/machines/orion/pasted-image-20261017013219.png)
 
-Port 80 was serving **Craft CMS**. I added `orion.htb` to `/etc/hosts` and started poking at the content with `ffuf`.
+Port 80 was serving **Craft CMS**.
+
+---
+
+## Enumeration
+
+I added `orion.htb` to `/etc/hosts` and started poking at the content with `ffuf`.
 
 ![](/assets/machines/orion/pasted-image-20261017014459.png)
 
@@ -50,7 +48,7 @@ Two flags made this actually usable: `-ic` to ignore the wordlist's own comment 
 
 ---
 
-## Foothold — Craft CMS pre-auth RCE (CVE-2025-32432)
+## Foothold: Craft CMS pre-auth RCE (CVE-2025-32432)
 
 The Craft version in use fell inside the affected range for CVE-2025-32432 (3.0.0-RC1–3.9.14, 4.0.0-RC1–4.14.14, 5.0.0-RC1–5.6.16) — a **pre-auth** remote code execution bug living in `/actions/assets/generate-transform`.
 
@@ -80,9 +78,7 @@ Setting `target 1` (Unix/Linux Command Shell) instead of the default PHP target,
 
 ![](/assets/machines/orion/pasted-image-20261017025435.png)
 
----
-
-## From web shell to database credentials
+### From web shell to database credentials
 
 With a stable shell, I checked the environment — self-hosted PHP apps configured through `.env` very often leak their secrets straight into the process environment.
 
@@ -94,9 +90,7 @@ env
 
 `CRAFT_DB_USER` and `CRAFT_DB_PASSWORD` (`SuperSecureCraft123Pass!`) were sitting right there.
 
----
-
-## Cracking the admin hash
+### Cracking the admin hash
 
 With working DB credentials, I queried the `users` table directly:
 
@@ -118,9 +112,7 @@ hashcat -m 3200 hash.txt /usr/share/wordlists/rockyou.txt
 
 Cracked to **`darkangel`**.
 
----
-
-## User — SSH via password reuse
+### User — SSH via password reuse (user.txt)
 
 Same story as the DB credentials showing up in plain env — here the admin's own password turned out to be reused as their system login.
 
@@ -134,7 +126,7 @@ ssh adam@orion.htb
 
 ---
 
-## Root — GNU inetutils telnetd argument injection (CVE-2026-24061)
+## Privilege escalation: GNU inetutils telnetd argument injection (CVE-2026-24061)
 
 Looking for anything listening only locally:
 
@@ -170,14 +162,7 @@ Machine pwned.
 
 ---
 
-## Flags
-
-- **User:** `/home/adam/user.txt`, reached via the cracked admin password reused as `adam`'s SSH login.
-- **Root:** `/root/root.txt`, reached via the telnetd argument-injection auth bypass.
-
----
-
-## Lessons Learned / Mitigation
+## Reflection
 
 - **Craft CMS was exposed and unpatched against a pre-auth RCE.** CVE-2025-32432 needs no authentication at all — keeping CMS installations current isn't optional when the admin panel is internet-facing.
 - **Database credentials were readable straight out of the process environment.** `.env`-style secrets end up in `env` dumps and process listings far more often than people expect; anything that touches the shell's environment should be treated as effectively world-readable to anyone who lands code execution.
