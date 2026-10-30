@@ -182,7 +182,7 @@ And it worked — the app's superuser password had been recycled as `nightfall`'
 
 ---
 
-## Privilege escalation: forged `alg:none` JWT → MCP tool-registry RCE → kubelet exec breakout
+## Privilege escalation: kubelet exec breakout (via forged `alg:none` JWT + MCP RCE)
 
 ### A hidden `.mcp` folder, and a second set of credentials
 
