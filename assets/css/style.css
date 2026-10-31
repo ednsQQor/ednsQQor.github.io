@@ -877,7 +877,7 @@ html { scroll-padding-top: 90px; }
   padding: 10px;
   border: 1px solid var(--hairline);
   border-radius: var(--radius);
-  background: var(--surface);
+  background: var(--bg);
 }
 .htb-profile:hover { border-color: var(--accent); text-decoration: none; }
 .htb-profile img { display: block; max-width: 100%; height: auto; border-radius: 2px; }
