@@ -879,7 +879,7 @@ html { scroll-padding-top: 90px; }
 }
 .htb-profile:hover { text-decoration: none; }
 .htb-profile:hover .htb-name { color: var(--accent); }
-.htb-avatar { width: 46px; height: 46px; border-radius: 6px; flex: none; border: 1px solid var(--hairline); }
+.htb-avatar { width: 60px; height: 60px; border-radius: 6px; flex: none; }
 .htb-cube { width: 13px; height: 13px; vertical-align: -2px; margin-right: 5px; }
 .htb-info { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
 .htb-name { font-family: var(--font-display); font-weight: 600; font-size: 1rem; color: var(--text); letter-spacing: 0.02em; }
