@@ -869,21 +869,25 @@ html { scroll-padding-top: 90px; }
 /* Hack The Box profile badge */
 .htb-profile {
   display: inline-flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 8px;
+  align-items: center;
+  gap: 14px;
   margin: 0 0 28px;
-  padding: 8px;
-  border: 1px solid var(--hairline);
-  border-radius: var(--radius);
-  background: var(--bg);
+  padding: 4px 0;
+  background: transparent;
+  color: var(--text);
   max-width: 100%;
 }
-.htb-profile:hover { border-color: var(--accent); text-decoration: none; }
-.htb-profile img { display: block; max-width: 100%; height: auto; border-radius: 2px; }
-.htb-profile-hint { font-family: var(--font-mono); font-size: 0.78rem; color: var(--text-muted); }
-.htb-profile:hover .htb-profile-hint { color: var(--accent); }
+.htb-profile:hover { text-decoration: none; }
+.htb-profile:hover .htb-name { color: var(--accent); }
+.htb-logo { width: 32px; height: 32px; flex: none; }
+.htb-info { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.htb-name { font-family: var(--font-display); font-weight: 600; font-size: 1rem; color: var(--text); letter-spacing: 0.02em; }
+.htb-meta { font-size: 0.78rem; color: var(--text-muted); }
+.htb-go { margin-left: 10px; font-family: var(--font-mono); font-size: 0.78rem; color: var(--text-faint); white-space: nowrap; }
+.htb-profile:hover .htb-go { color: var(--accent); }
 @media (prefers-reduced-motion: no-preference) {
-  .htb-profile { transition: border-color 0.15s ease, transform 0.18s ease; }
-  .htb-profile:hover { transform: translateY(-2px); }
+  .htb-name, .htb-go { transition: color 0.15s ease; }
+}
+@media (max-width: 520px) {
+  .htb-go { display: none; }
 }
