@@ -4,6 +4,8 @@ date: 2026-10-16
 os: Linux
 difficulty: medium
 platform: HTB
+tags: [clickhouse, xxe, spring-heapdump, kafka, proc-cmdline-sniffing, systemd-timer]
+summary: "XXE and leaked secrets (a Spring heapdump and the Kafka config) for an SSH foothold, then root by sniffing a ClickHouse password from /proc and abusing a root systemd-timer formatter."
 lock: timelock
 unlock_date: 2026-11-30T22:59:00.000Z
 unlock_round: 34425392

@@ -34,6 +34,49 @@
     {% if machine.platform %}<span class="badge badge-platform">{{ machine.platform }}</span>{% endif %}
   </div>
 </a>
+{% elsif machine.lock == "timelock" %}
+<a class="card card-machine card-timelock"
+   href="{{ machine.url | relative_url }}"
+   data-type="machine"
+   data-name="{{ machine.title | downcase }}"
+   data-difficulty="{{ machine.difficulty | default: '' | downcase }}"
+   data-os="{{ machine.os | default: '' | downcase }}"
+   data-date="{{ machine.date | date_to_xmlschema }}"
+   data-tags="{{ machine.tags | join: ' ' | downcase }}">
+  <div class="card-top">
+    <h3 class="card-title">{{ machine.title }}</h3>
+    {% if machine.os %}
+    <span class="badge badge-os badge-os-{{ machine.os | downcase }}">{{ machine.os }}</span>
+    {% endif %}
+  </div>
+
+  {% if machine.summary %}<p class="card-summary">{{ machine.summary }}</p>{% endif %}
+
+  {% if machine.tags %}
+  <div class="card-topics">
+    {% for tag in machine.tags limit: 4 %}<span class="tag">{{ tag }}</span>{% endfor %}
+    {% if machine.tags.size > 4 %}<span class="tag tag-more">+{{ machine.tags.size | minus: 4 }}</span>{% endif %}
+  </div>
+  {% endif %}
+
+  {% if machine.unlock_date %}
+  <p class="card-countdown" data-unlock="{{ machine.unlock_date | date_to_xmlschema }}">
+    <span class="countdown-label">&#128274; Se desbloquea en</span>
+    <span class="countdown-value">&mdash;</span>
+  </p>
+  {% endif %}
+
+  <div class="card-meta">
+    {% if machine.difficulty %}
+    <span class="badge badge-diff badge-diff-{{ machine.difficulty | downcase }}">{{ machine.difficulty }}</span>
+    {% endif %}
+    <span class="badge badge-status-locked">&#128274; LOCKED</span>
+    {% if machine.platform %}<span class="badge badge-platform">{{ machine.platform }}</span>{% endif %}
+    {% if machine.unlock_date %}
+    <time class="meta-date" datetime="{{ machine.unlock_date | date_to_xmlschema }}">{{ machine.unlock_date | date: "%d %b %Y" }}</time>
+    {% endif %}
+  </div>
+</a>
 {% else %}
 <a class="card card-machine"
    href="{{ machine.url | relative_url }}"

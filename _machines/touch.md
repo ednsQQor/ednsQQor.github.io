@@ -4,6 +4,8 @@ date: 2026-10-07
 os: Windows
 difficulty: easy
 platform: HTB
+tags: [kiosk-escape, api-info-leak, rdp, edge-file-protocol, mysql-udf, privilege-escalation]
+summary: "An open API leaks the kiosk's RDP credentials, an escape from the locked-down kiosk browser into a real shell, and SYSTEM via a malicious MySQL UDF."
 lock: timelock
 unlock_date: 2026-11-30T22:59:00.000Z
 unlock_round: 34425392

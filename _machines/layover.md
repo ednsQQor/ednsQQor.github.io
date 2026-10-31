@@ -4,6 +4,8 @@ date: 2026-10-09
 os: Linux
 difficulty: medium
 platform: HTB
+tags: [wifi-sniffing, chisel-pivot, craftcms, twig-ssti, cve-2026-31857, cups, cve-2026-34990]
+summary: "Sniffing Wi-Fi credentials and tunneling into the internal network, an unsandboxed Twig SSTI for RCE (CVE-2026-31857), and root through a CUPS buffer overflow (CVE-2026-34990)."
 lock: timelock
 unlock_date: 2026-11-30T22:59:00.000Z
 unlock_round: 34425392

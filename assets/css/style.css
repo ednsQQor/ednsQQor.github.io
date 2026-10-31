@@ -295,7 +295,8 @@ code, pre, kbd, samp { font-family: var(--font-mono); }
   background: var(--surface-hover);
 }
 @media (prefers-reduced-motion: no-preference) {
-  .card { transition: border-color 0.12s ease, background-color 0.12s ease; }
+  .card { transition: border-color 0.15s ease, background-color 0.15s ease, transform 0.18s ease, box-shadow 0.18s ease; }
+  .card:hover { transform: translateY(-3px); box-shadow: 0 8px 22px -14px rgba(0, 0, 0, 0.7); }
 }
 
 .card-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
@@ -822,13 +823,16 @@ code, pre, kbd, samp { font-family: var(--font-mono); }
 .writeup-toc a {
   display: block;
   border-left: 2px solid transparent;
-  padding-left: 10px;
+  padding: 2px 8px 2px 10px;
   margin-left: -12px;
-  transition: color 0.12s ease, border-color 0.12s ease;
+  border-radius: 2px;
+  transition: color 0.2s ease, border-color 0.2s ease, background-color 0.2s ease, transform 0.2s ease;
 }
 .writeup-toc a.is-active {
   color: var(--accent);
   border-left-color: var(--accent);
+  background: var(--accent-soft);
+  transform: translateX(3px);
 }
 
 /* Optional preview image at the top of a writeup (front matter: image:) */
@@ -842,4 +846,44 @@ code, pre, kbd, samp { font-family: var(--font-mono); }
   height: auto;
   border: 1px solid var(--hairline);
   border-radius: var(--radius);
+}
+
+/* ==========================================================================
+   Motion & polish: smooth scroll, card reveal, locked cards, HTB profile
+   ========================================================================== */
+html { scroll-padding-top: 90px; }
+@media (prefers-reduced-motion: no-preference) {
+  html { scroll-behavior: smooth; }
+}
+
+/* Time-lock machine cards */
+.badge-status-locked { background: var(--accent-soft); color: var(--accent); border-color: var(--accent); }
+.card-timelock { border-left: 3px solid var(--accent-dim); }
+.card-countdown .countdown-label { display: block; font-size: 0.72rem; color: var(--text-faint); margin-bottom: 2px; }
+
+/* Card reveal on scroll — JS adds .reveal-ready; without JS the cards stay visible */
+@media (prefers-reduced-motion: no-preference) {
+  .reveal-ready .card { opacity: 0; transform: translateY(12px); transition: opacity 0.5s ease, transform 0.5s ease; }
+  .reveal-ready .card.is-visible { opacity: 1; transform: translateY(0); }
+}
+
+/* Hack The Box profile badge */
+.htb-profile {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0 0 24px;
+  padding: 10px;
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+.htb-profile:hover { border-color: var(--accent); text-decoration: none; }
+.htb-profile img { display: block; max-width: 100%; height: auto; border-radius: 2px; }
+.htb-profile-hint { font-family: var(--font-mono); font-size: 0.78rem; color: var(--text-muted); }
+.htb-profile:hover .htb-profile-hint { color: var(--accent); }
+@media (prefers-reduced-motion: no-preference) {
+  .htb-profile { transition: border-color 0.15s ease, transform 0.18s ease; }
+  .htb-profile:hover { transform: translateY(-2px); }
 }

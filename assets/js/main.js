@@ -343,6 +343,34 @@
     });
   }
 
+  // --------------------------------------------------------------------
+  // Reveal cards as they scroll into view (staggered fade + slide up).
+  // Degrades gracefully: without JS / IO / with reduced motion, cards stay
+  // fully visible (the hiding class is only added here).
+  // --------------------------------------------------------------------
+  function initCardReveal() {
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    if (!("IntersectionObserver" in window)) return;
+    var cards = document.querySelectorAll(".card");
+    if (!cards.length) return;
+    document.body.classList.add("reveal-ready");
+
+    var io = new IntersectionObserver(function (entries) {
+      var i = 0;
+      entries.forEach(function (entry) {
+        if (!entry.isIntersecting) return;
+        var el = entry.target;
+        io.unobserve(el);
+        (function (node, delay) {
+          setTimeout(function () { node.classList.add("is-visible"); }, delay);
+        })(el, i * 45);
+        i++;
+      });
+    }, { rootMargin: "0px 0px -6% 0px", threshold: 0.04 });
+
+    cards.forEach(function (c) { io.observe(c); });
+  }
+
   document.addEventListener("DOMContentLoaded", function () {
     initClosingSection();
     initToc();
@@ -353,5 +381,6 @@
     initNavToggle();
     initCountdowns();
     initBackToTop();
+    initCardReveal();
   });
 })();

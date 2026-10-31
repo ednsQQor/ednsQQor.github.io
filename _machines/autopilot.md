@@ -4,6 +4,8 @@ date: 2026-10-24
 os: Windows
 difficulty: Insane
 platform: HTB
+tags: [grommunio, nextcloud-rce, php-fpm-pivot, ntlm-relay, go-reversing, active-directory]
+summary: "A grommunio/Nextcloud web RCE and a php-fpm socket pivot to local root, then an NTLM relay into the AD, Go-binary reversing, and Domain Admin on the DC."
 lock: timelock
 unlock_date: 2026-11-30T22:59:00.000Z
 unlock_round: 34425392

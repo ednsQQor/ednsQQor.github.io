@@ -4,6 +4,8 @@ date: 2026-10-30
 os: Linux
 difficulty: Medium
 platform: HTB
+tags: [postgresql-rce, bcbp-sqli, x11-xtest-hijack, systemd-path-unit, eval-injection, privilege-escalation]
+summary: "Error-based SQL injection through a crafted BCBP boarding pass for RCE as postgres, an X11/XTEST session hijack to a kiosk user, and root via an eval injection in a root systemd path unit."
 lock: timelock
 unlock_date: 2026-11-30T22:59:00.000Z
 unlock_round: 34425392
